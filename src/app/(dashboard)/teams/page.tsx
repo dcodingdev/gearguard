@@ -101,7 +101,7 @@ export default function TeamsPage() {
                                     <div className="flex flex-wrap gap-2">
                                         {team.members.slice(0, 4).map((member) => (
                                             <div
-                                                key={member.id}
+                                                key={member.userId}
                                                 className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-800"
                                             >
                                                 <Avatar className="h-6 w-6">
@@ -141,7 +141,7 @@ export default function TeamsPage() {
                                             .slice(0, 3)
                                             .map((member) => (
                                                 <Avatar
-                                                    key={member.id}
+                                                    key={member.userId}
                                                     className="h-7 w-7 border-2 border-slate-900"
                                                 >
                                                     <AvatarFallback className="text-xs bg-green-600">

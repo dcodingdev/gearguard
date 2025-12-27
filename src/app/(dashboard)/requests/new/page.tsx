@@ -132,12 +132,7 @@ export default function NewRequestPage() {
                                     <SelectContent className="bg-slate-800 border-slate-700">
                                         {REQUEST_TYPES.map((type) => (
                                             <SelectItem key={type.value} value={type.value}>
-                                                <div>
-                                                    <span>{type.label}</span>
-                                                    <span className="text-xs text-slate-400 block">
-                                                        {type.description}
-                                                    </span>
-                                                </div>
+                                                {type.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -159,10 +154,7 @@ export default function NewRequestPage() {
                                     <SelectContent className="bg-slate-800 border-slate-700">
                                         {REQUEST_PRIORITY.map((priority) => (
                                             <SelectItem key={priority.value} value={priority.value}>
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-2 h-2 rounded-full ${priority.color}`} />
-                                                    {priority.label}
-                                                </div>
+                                                {priority.label}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -193,12 +185,7 @@ export default function NewRequestPage() {
                                 <SelectContent className="bg-slate-800 border-slate-700">
                                     {equipment.map((item) => (
                                         <SelectItem key={item.id} value={item.id}>
-                                            <div>
-                                                <span>{item.name}</span>
-                                                <span className="text-xs text-slate-400 ml-2">
-                                                    ({item.serialNumber})
-                                                </span>
-                                            </div>
+                                            {`${item.name} (${item.serialNumber})`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -232,12 +219,7 @@ export default function NewRequestPage() {
                                     <SelectContent className="bg-slate-800 border-slate-700">
                                         {teams.map((team) => (
                                             <SelectItem key={team.id} value={team.id}>
-                                                <div>
-                                                    <span>{team.name}</span>
-                                                    <span className="text-xs text-slate-400 ml-2">
-                                                        ({team.members.length} members)
-                                                    </span>
-                                                </div>
+                                                {team.name}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -260,12 +242,7 @@ export default function NewRequestPage() {
                                     <SelectContent className="bg-slate-800 border-slate-700">
                                         {selectedTeam?.members.map((member) => (
                                             <SelectItem key={member.userId} value={member.userId}>
-                                                <div className="flex items-center gap-2">
-                                                    <span>{member.name}</span>
-                                                    {!member.isAvailable && (
-                                                        <span className="text-xs text-amber-400">(Busy)</span>
-                                                    )}
-                                                </div>
+                                                {`${member.name}${!member.isAvailable ? ' (Busy)' : ''}`}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

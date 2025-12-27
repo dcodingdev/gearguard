@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
 
         // Find user
         const user = await getUserByEmail(email);
+
         if (!user) {
             return NextResponse.json(
                 { error: 'Invalid email or password' },
@@ -47,9 +48,11 @@ export async function POST(request: NextRequest) {
         const token = await createToken(user);
 
         // Create response with cookie
+        const userId = user.id || (user as any)._id?.toString();
+
         const response = NextResponse.json({
             user: {
-                id: user.id,
+                id: userId,
                 name: user.name,
                 email: user.email,
                 role: user.role,

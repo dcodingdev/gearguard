@@ -8,12 +8,16 @@ const secret = new TextEncoder().encode(JWT_SECRET);
 
 export async function createToken(user: User): Promise<string> {
     const payload: AuthPayload = {
-        userId: user.id,
+        userId: user.id || (user as any)._id?.toString() || '',
         email: user.email,
         name: user.name,
         role: user.role,
         teamId: user.teamId,
     };
+
+    if (!payload.userId) {
+        throw new Error('User ID is missing');
+    }
 
     const token = await new SignJWT(payload as unknown as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256' })

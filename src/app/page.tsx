@@ -195,7 +195,7 @@ export default function DashboardPage() {
                             </div>
                             <div className="flex justify-center gap-4 mt-4">
                                 {equipmentChartData.map((item, index) => (
-                                    <div key={item.name} className="flex items-center gap-2">
+                                    <div key={`legend-${item.name}`} className="flex items-center gap-2">
                                         <div
                                             className="w-3 h-3 rounded-full"
                                             style={{ backgroundColor: COLORS[index] }}
@@ -254,28 +254,28 @@ export default function DashboardPage() {
                                         <div className="flex items-center gap-4">
                                             <div
                                                 className={`p-2 rounded-lg ${request.priority === 'critical'
-                                                        ? 'bg-red-500/20'
-                                                        : request.priority === 'high'
-                                                            ? 'bg-orange-500/20'
-                                                            : 'bg-blue-500/20'
+                                                    ? 'bg-red-500/20'
+                                                    : request.priority === 'high'
+                                                        ? 'bg-orange-500/20'
+                                                        : 'bg-blue-500/20'
                                                     }`}
                                             >
-                                                {request.status === 'completed' ? (
+                                                {request.status === 'repaired' ? (
                                                     <CheckCircle2
                                                         className={`h-5 w-5 ${request.priority === 'critical'
-                                                                ? 'text-red-400'
-                                                                : request.priority === 'high'
-                                                                    ? 'text-orange-400'
-                                                                    : 'text-blue-400'
+                                                            ? 'text-red-400'
+                                                            : request.priority === 'high'
+                                                                ? 'text-orange-400'
+                                                                : 'text-blue-400'
                                                             }`}
                                                     />
                                                 ) : request.status === 'in_progress' ? (
                                                     <Clock
                                                         className={`h-5 w-5 ${request.priority === 'critical'
-                                                                ? 'text-red-400'
-                                                                : request.priority === 'high'
-                                                                    ? 'text-orange-400'
-                                                                    : 'text-blue-400'
+                                                            ? 'text-red-400'
+                                                            : request.priority === 'high'
+                                                                ? 'text-orange-400'
+                                                                : 'text-blue-400'
                                                             }`}
                                                     />
                                                 ) : request.priority === 'critical' ? (
@@ -296,7 +296,7 @@ export default function DashboardPage() {
                                             <Badge
                                                 variant="outline"
                                                 className={
-                                                    request.status === 'completed'
+                                                    request.status === 'repaired'
                                                         ? 'bg-green-500/10 text-green-400 border-green-500/30'
                                                         : request.status === 'in_progress'
                                                             ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'

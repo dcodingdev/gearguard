@@ -11,6 +11,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { USER_ROLES } from '@/constants';
 
 export default function SignupPage() {
     const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +28,7 @@ export default function SignupPage() {
     const {
         register,
         handleSubmit,
+        setValue,
         formState: { errors, isSubmitting },
     } = useForm<RegisterSchemaType>({
         resolver: zodResolver(registerSchema),
@@ -110,6 +119,26 @@ export default function SignupPage() {
                             />
                             {errors.email && (
                                 <p className="text-sm text-red-400">{errors.email.message}</p>
+                            )}
+                        </div>
+
+                        {/* Role */}
+                        <div className="space-y-2">
+                            <Label className="text-slate-300">Role</Label>
+                            <Select onValueChange={(value) => setValue('role', value as any)}>
+                                <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                                    <SelectValue placeholder="Select your role" />
+                                </SelectTrigger>
+                                <SelectContent className="bg-slate-800 border-slate-700">
+                                    {USER_ROLES.map((role) => (
+                                        <SelectItem key={role.value} value={role.value}>
+                                            {role.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.role && (
+                                <p className="text-sm text-red-400">{errors.role.message as string}</p>
                             )}
                         </div>
 

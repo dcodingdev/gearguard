@@ -2,15 +2,15 @@ import { z } from 'zod';
 import { DEPARTMENTS, EQUIPMENT_CATEGORIES, EQUIPMENT_STATUS } from '@/constants';
 
 // Helper to create enum from const array
-const departmentValues = DEPARTMENTS.map(d => d.value) as [string, ...string[]];
-const categoryValues = EQUIPMENT_CATEGORIES.map(c => c.value) as [string, ...string[]];
-const statusValues = EQUIPMENT_STATUS.map(s => s.value) as [string, ...string[]];
+const departmentValues = ['production', 'it', 'admin', 'logistics', 'maintenance', 'quality', 'facilities', 'sales'] as const;
+const categoryValues = ['machine', 'vehicle', 'computer', 'other'] as const;
+const statusValues = ['operational', 'under_maintenance', 'out_of_service', 'scrapped'] as const;
 
 export const equipmentSchema = z.object({
     name: z.string().min(1, 'Equipment name is required').max(100, 'Name too long'),
     serialNumber: z.string().min(1, 'Serial number is required').max(50, 'Serial number too long'),
-    category: z.enum(categoryValues, { errorMap: () => ({ message: 'Please select a category' }) }),
-    department: z.enum(departmentValues, { errorMap: () => ({ message: 'Please select a department' }) }),
+    category: z.enum(categoryValues),
+    department: z.enum(departmentValues),
     assignedEmployee: z.object({
         id: z.string(),
         name: z.string(),

@@ -8,7 +8,7 @@ export const teamMemberSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email address'),
     phone: z.string().optional(),
-    role: z.enum(memberRoleValues, { errorMap: () => ({ message: 'Please select a role' }) }),
+    role: z.enum(['lead', 'technician']),
     isAvailable: z.boolean().default(true),
 });
 

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const { name, email, password } = result.data;
+        const { name, email, password, role } = result.data;
 
         // Check if user already exists
         const existingUser = await getUserByEmail(email);
@@ -27,12 +27,12 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create user (default role: technician)
+        // Create user
         const newUser = await createUser({
             name,
             email,
             password: hashPassword(password),
-            role: 'technician',
+            role: role as any,
             isActive: true,
             avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
         });

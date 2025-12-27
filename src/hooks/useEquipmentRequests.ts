@@ -37,10 +37,10 @@ export function useEquipmentRequests({ equipmentId }: UseEquipmentRequestsOption
         fetchRequests();
     }, [fetchRequests]);
 
-    // Count of open requests (not completed, cancelled, or scrapped)
+    // Count of new requests (not completed, cancelled, or scrapped)
     const openCount = useMemo(() => {
         return requests.filter(
-            (r) => r.status === 'open' || r.status === 'in_progress'
+            (r) => r.status === 'new' || r.status === 'in_progress'
         ).length;
     }, [requests]);
 
@@ -72,13 +72,13 @@ export function useEquipmentRequestCounts(equipmentIds: string[]) {
                 const response = await api.get('/requests');
                 const allRequests: MaintenanceRequest[] = response.data;
 
-                // Group and count open requests by equipment ID
+                // Group and count new requests by equipment ID
                 const newCounts: Record<string, number> = {};
                 for (const id of equipmentIds) {
                     newCounts[id] = allRequests.filter(
                         (r) =>
                             r.equipmentId === id &&
-                            (r.status === 'open' || r.status === 'in_progress')
+                            (r.status === 'new' || r.status === 'in_progress')
                     ).length;
                 }
                 setCounts(newCounts);

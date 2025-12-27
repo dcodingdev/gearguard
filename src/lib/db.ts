@@ -9,6 +9,63 @@ import {
 import { User, Equipment, MaintenanceTeam, MaintenanceRequest, ActivityLog } from '@/types';
 import { hashPassword } from './auth';
 
+function mapDocument<T>(doc: any, seen = new WeakSet()): T {
+    if (!doc || typeof doc !== 'object') return doc;
+
+    if (Array.isArray(doc)) {
+        return doc.map(d => mapDocument(d, seen)) as any;
+    }
+
+    // Handle Date, ObjectId, and other special types
+    if (doc instanceof Date) return doc as any;
+    if (doc._bsontype === 'ObjectID' || doc.constructor?.name === 'ObjectId') {
+        return doc.toString() as any;
+    }
+
+    if (seen.has(doc)) return doc;
+    seen.add(doc);
+
+    // If it's not a plain object, don't recurse (e.g. Buffer, etc)
+    if (doc.constructor && doc.constructor !== Object) {
+        // But still check if it's a Mongoose-like document with toObject/toJSON
+        if (typeof doc.toJSON === 'function') {
+            return mapDocument(doc.toJSON(), seen);
+        }
+        if (typeof doc.toObject === 'function') {
+            return mapDocument(doc.toObject(), seen);
+        }
+        // If it's some other class instance, just return it or its string rep if it has _id
+        if (doc._id) {
+            const result = { ...doc, id: doc._id.toString() };
+            delete (result as any)._id;
+            return result as any;
+        }
+        return doc;
+    }
+
+    // It's a plain object
+    const newDoc: any = { ...doc };
+
+    // Map _id to id if it exists
+    if (newDoc._id) {
+        newDoc.id = newDoc._id.toString();
+        delete newDoc._id;
+    }
+    delete newDoc.__v;
+
+    // Recursively map properties
+    for (const key in newDoc) {
+        if (Object.prototype.hasOwnProperty.call(newDoc, key)) {
+            const val = newDoc[key];
+            if (val && typeof val === 'object') {
+                newDoc[key] = mapDocument(val, seen);
+            }
+        }
+    }
+
+    return newDoc as T;
+}
+
 // Generate unique IDs (keeping the same format for consistency)
 export function generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -381,19 +438,20 @@ export async function seedDatabase() {
 // User operations
 export async function getUsers(): Promise<User[]> {
     await dbConnect();
-    return UserModel.find({}).lean();
+    const users = await UserModel.find({}).lean();
+    return mapDocument(users);
 }
 
 export async function getUserById(id: string): Promise<User | undefined> {
     await dbConnect();
     const user = await UserModel.findById(id).lean();
-    return user as User | undefined;
+    return mapDocument(user) as User | undefined;
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
     await dbConnect();
     const user = await UserModel.findOne({ email }).lean();
-    return user as User | undefined;
+    return mapDocument(user) as User | undefined;
 }
 
 export async function createUser(data: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
@@ -402,13 +460,13 @@ export async function createUser(data: Omit<User, 'id' | 'createdAt' | 'updatedA
         ...data,
         _id: generateId(), // Explicitly set ID if we want to maintain string ID format
     });
-    return newUser.toJSON();
+    return mapDocument(newUser.toJSON());
 }
 
 export async function updateUser(id: string, data: Partial<User>): Promise<User | null> {
     await dbConnect();
     const updatedUser = await UserModel.findByIdAndUpdate(id, data, { new: true }).lean();
-    return updatedUser as User | null;
+    return mapDocument(updatedUser) as User | null;
 }
 
 export async function deleteUser(id: string): Promise<boolean> {
@@ -435,13 +493,13 @@ export async function getEquipment(filters?: { department?: string; status?: str
             { location: { $regex: search, $options: 'i' } }
         ];
     }
-    return EquipmentModel.find(query).lean();
+    return mapDocument(await EquipmentModel.find(query).lean());
 }
 
 export async function getEquipmentById(id: string): Promise<Equipment | undefined> {
     await dbConnect();
     const equipment = await EquipmentModel.findById(id).lean();
-    return equipment as Equipment | undefined;
+    return mapDocument(equipment) as Equipment | undefined;
 }
 
 export async function createEquipment(data: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Equipment> {
@@ -450,13 +508,13 @@ export async function createEquipment(data: Omit<Equipment, 'id' | 'createdAt' |
         ...data,
         _id: generateId(),
     });
-    return newEquipment.toJSON();
+    return mapDocument(newEquipment.toJSON());
 }
 
 export async function updateEquipment(id: string, data: Partial<Equipment>): Promise<Equipment | null> {
     await dbConnect();
     const updatedEquipment = await EquipmentModel.findByIdAndUpdate(id, data, { new: true }).lean();
-    return updatedEquipment as Equipment | null;
+    return mapDocument(updatedEquipment) as Equipment | null;
 }
 
 export async function deleteEquipment(id: string): Promise<boolean> {
@@ -468,13 +526,14 @@ export async function deleteEquipment(id: string): Promise<boolean> {
 // Team operations
 export async function getTeams(): Promise<MaintenanceTeam[]> {
     await dbConnect();
-    return MaintenanceTeamModel.find({}).lean();
+    const teams = await MaintenanceTeamModel.find({}).lean();
+    return mapDocument(teams);
 }
 
 export async function getTeamById(id: string): Promise<MaintenanceTeam | undefined> {
     await dbConnect();
     const team = await MaintenanceTeamModel.findById(id).lean();
-    return team as MaintenanceTeam | undefined;
+    return mapDocument(team) as MaintenanceTeam | undefined;
 }
 
 export async function createTeam(data: Omit<MaintenanceTeam, 'id' | 'createdAt' | 'updatedAt' | 'members'>): Promise<MaintenanceTeam> {
@@ -484,13 +543,13 @@ export async function createTeam(data: Omit<MaintenanceTeam, 'id' | 'createdAt' 
         _id: generateId(),
         members: []
     });
-    return newTeam.toJSON();
+    return mapDocument(newTeam.toJSON());
 }
 
 export async function updateTeam(id: string, data: Partial<MaintenanceTeam>): Promise<MaintenanceTeam | null> {
     await dbConnect();
     const updatedTeam = await MaintenanceTeamModel.findByIdAndUpdate(id, data, { new: true }).lean();
-    return updatedTeam as MaintenanceTeam | null;
+    return mapDocument(updatedTeam) as MaintenanceTeam | null;
 }
 
 export async function deleteTeam(id: string): Promise<boolean> {
@@ -508,13 +567,13 @@ export async function getRequests(filters?: { status?: string; type?: string; te
     if (filters?.teamId) query.teamId = filters.teamId;
     if (filters?.equipmentId) query.equipmentId = filters.equipmentId;
 
-    return MaintenanceRequestModel.find(query).sort({ createdAt: -1 }).lean();
+    return mapDocument(await MaintenanceRequestModel.find(query).sort({ createdAt: -1 }).lean());
 }
 
 export async function getRequestById(id: string): Promise<MaintenanceRequest | undefined> {
     await dbConnect();
     const request = await MaintenanceRequestModel.findById(id).lean();
-    return request as MaintenanceRequest | undefined;
+    return mapDocument(request) as MaintenanceRequest | undefined;
 }
 
 export async function createRequest(data: Omit<MaintenanceRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<MaintenanceRequest> {
@@ -523,13 +582,13 @@ export async function createRequest(data: Omit<MaintenanceRequest, 'id' | 'creat
         ...data,
         _id: generateId(),
     });
-    return newRequest.toJSON();
+    return mapDocument(newRequest.toJSON());
 }
 
 export async function updateRequest(id: string, data: Partial<MaintenanceRequest>): Promise<MaintenanceRequest | null> {
     await dbConnect();
     const updatedRequest = await MaintenanceRequestModel.findByIdAndUpdate(id, data, { new: true }).lean();
-    return updatedRequest as MaintenanceRequest | null;
+    return mapDocument(updatedRequest) as MaintenanceRequest | null;
 }
 
 export async function deleteRequest(id: string): Promise<boolean> {
@@ -541,7 +600,7 @@ export async function deleteRequest(id: string): Promise<boolean> {
 // Activity log
 export async function getActivityLog(limit = 10): Promise<ActivityLog[]> {
     await dbConnect();
-    return ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(limit).lean();
+    return mapDocument(await ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(limit).lean());
 }
 
 export async function addActivityLog(data: Omit<ActivityLog, 'id' | 'createdAt'>): Promise<void> {

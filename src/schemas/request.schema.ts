@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { REQUEST_TYPES, REQUEST_PRIORITY, REQUEST_STATUS } from '@/constants';
 
-const typeValues = REQUEST_TYPES.map(t => t.value) as [string, ...string[]];
-const priorityValues = REQUEST_PRIORITY.map(p => p.value) as [string, ...string[]];
-const statusValues = REQUEST_STATUS.map(s => s.value) as [string, ...string[]];
+const typeValues = ['corrective', 'preventive'] as const;
+const priorityValues = ['low', 'medium', 'high', 'critical'] as const;
+const statusValues = ['new', 'in_progress', 'repaired', 'cancelled', 'scrap'] as const;
 
 export const requestSchema = z.object({
     subject: z.string().min(1, 'Subject is required').max(200, 'Subject too long'),
     description: z.string().min(1, 'Description is required').max(2000, 'Description too long'),
-    type: z.enum(typeValues, { errorMap: () => ({ message: 'Please select a request type' }) }),
-    priority: z.enum(priorityValues, { errorMap: () => ({ message: 'Please select a priority' }) }),
+    type: z.enum(typeValues),
+    priority: z.enum(priorityValues),
     equipmentId: z.string().min(1, 'Please select equipment'),
     teamId: z.string().min(1, 'Please select a team'),
     assignedTechnicianId: z.string().optional(),

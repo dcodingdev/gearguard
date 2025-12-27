@@ -10,12 +10,12 @@ import {
 } from '@/types';
 
 // --- User Model ---
-const UserSchema = new Schema<User>({
+const UserSchema = new Schema({
     _id: { type: String, required: true },
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, required: true },
+    role: { type: String, required: true, enum: ['admin', 'manager', 'technician'] },
     teamId: { type: String },
     avatar: { type: String },
     isActive: { type: Boolean, default: true },
@@ -23,7 +23,7 @@ const UserSchema = new Schema<User>({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
@@ -39,7 +39,7 @@ const AssignedEmployeeSchema = new Schema<AssignedEmployee>({
     name: { type: String }
 }, { _id: false });
 
-const EquipmentSchema = new Schema<Equipment>({
+const EquipmentSchema = new Schema({
     _id: { type: String, required: true },
     name: { type: String, required: true },
     serialNumber: { type: String, required: true, unique: true },
@@ -59,7 +59,7 @@ const EquipmentSchema = new Schema<Equipment>({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
@@ -80,7 +80,7 @@ const TeamMemberSchema = new Schema<TeamMember>({
 }, {
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
@@ -88,7 +88,7 @@ const TeamMemberSchema = new Schema<TeamMember>({
     }
 });
 
-const MaintenanceTeamSchema = new Schema<MaintenanceTeam>({
+const MaintenanceTeamSchema = new Schema({
     _id: { type: String, required: true },
     name: { type: String, required: true },
     specialization: { type: String, required: true },
@@ -98,7 +98,7 @@ const MaintenanceTeamSchema = new Schema<MaintenanceTeam>({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
@@ -109,7 +109,7 @@ const MaintenanceTeamSchema = new Schema<MaintenanceTeam>({
 export const MaintenanceTeamModel: Model<MaintenanceTeam> = mongoose.models.MaintenanceTeam || mongoose.model<MaintenanceTeam>('MaintenanceTeam', MaintenanceTeamSchema);
 
 // --- Maintenance Request Model ---
-const MaintenanceRequestSchema = new Schema<MaintenanceRequest>({
+const MaintenanceRequestSchema = new Schema({
     _id: { type: String, required: true },
     subject: { type: String, required: true },
     description: { type: String, required: true },
@@ -128,7 +128,7 @@ const MaintenanceRequestSchema = new Schema<MaintenanceRequest>({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
@@ -139,7 +139,7 @@ const MaintenanceRequestSchema = new Schema<MaintenanceRequest>({
 export const MaintenanceRequestModel: Model<MaintenanceRequest> = mongoose.models.MaintenanceRequest || mongoose.model<MaintenanceRequest>('MaintenanceRequest', MaintenanceRequestSchema);
 
 // --- Activity Log Model ---
-const ActivityLogSchema = new Schema<ActivityLog>({
+const ActivityLogSchema = new Schema({
     _id: { type: String, required: true },
     type: { type: String, required: true },
     action: { type: String, required: true },
@@ -152,7 +152,7 @@ const ActivityLogSchema = new Schema<ActivityLog>({
     timestamps: true,
     toJSON: {
         virtuals: true,
-        transform: (doc, ret) => {
+        transform: (doc, ret: any) => {
             ret.id = ret._id.toString();
             delete ret._id;
             delete ret.__v;
