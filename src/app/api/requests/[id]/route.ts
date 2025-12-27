@@ -14,7 +14,7 @@ export async function GET(
         }
 
         const { id } = await params;
-        const maintenanceRequest = getRequestById(id);
+        const maintenanceRequest = await getRequestById(id);
 
         if (!maintenanceRequest) {
             return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -43,7 +43,7 @@ export async function PUT(
         }
 
         const { id } = await params;
-        const existingRequest = getRequestById(id);
+        const existingRequest = await getRequestById(id);
 
         if (!existingRequest) {
             return NextResponse.json({ error: 'Request not found' }, { status: 404 });
@@ -66,18 +66,18 @@ export async function PUT(
                 }
             }
 
-            const updated = updateRequest(id, filteredData);
+            const updated = await updateRequest(id, filteredData);
 
             // Scrap Logic: If moved to scrap, mark equipment as scrapped
             if (filteredData.status === 'scrap' && existingRequest.status !== 'scrap') {
-                const equipment = getEquipmentById(existingRequest.equipmentId);
+                const equipment = await getEquipmentById(existingRequest.equipmentId);
                 if (equipment && equipment.status !== 'scrapped') {
-                    updateEquipment(existingRequest.equipmentId, {
+                    await updateEquipment(existingRequest.equipmentId, {
                         status: 'scrapped',
                         isScraped: true,
                         scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
                     });
-                    addActivityLog({
+                    await addActivityLog({
                         type: 'equipment',
                         action: 'status_change',
                         entityId: existingRequest.equipmentId,
@@ -103,18 +103,18 @@ export async function PUT(
             );
         }
 
-        const updated = updateRequest(id, result.data);
+        const updated = await updateRequest(id, result.data);
 
         // Scrap Logic: If moved to scrap, mark equipment as scrapped
         if (result.data.status === 'scrap' && existingRequest.status !== 'scrap') {
-            const equipment = getEquipmentById(existingRequest.equipmentId);
+            const equipment = await getEquipmentById(existingRequest.equipmentId);
             if (equipment && equipment.status !== 'scrapped') {
-                updateEquipment(existingRequest.equipmentId, {
+                await updateEquipment(existingRequest.equipmentId, {
                     status: 'scrapped',
                     isScraped: true,
                     scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
                 });
-                addActivityLog({
+                await addActivityLog({
                     type: 'equipment',
                     action: 'status_change',
                     entityId: existingRequest.equipmentId,
@@ -148,7 +148,7 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const deleted = deleteRequest(id);
+        const deleted = await deleteRequest(id);
 
         if (!deleted) {
             return NextResponse.json({ error: 'Request not found' }, { status: 404 });

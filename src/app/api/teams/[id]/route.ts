@@ -14,7 +14,7 @@ export async function GET(
         }
 
         const { id } = await params;
-        const team = getTeamById(id);
+        const team = await getTeamById(id);
 
         if (!team) {
             return NextResponse.json({ error: 'Team not found' }, { status: 404 });
@@ -52,7 +52,7 @@ export async function PUT(
             );
         }
 
-        const team = updateTeam(id, result.data);
+        const team = await updateTeam(id, result.data);
 
         if (!team) {
             return NextResponse.json({ error: 'Team not found' }, { status: 404 });
@@ -80,7 +80,7 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const deleted = deleteTeam(id);
+        const deleted = await deleteTeam(id);
 
         if (!deleted) {
             return NextResponse.json({ error: 'Team not found' }, { status: 404 });

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
         const status = searchParams.get('status') || undefined;
         const search = searchParams.get('search') || undefined;
 
-        const equipment = getEquipment({ department, status, search });
+        const equipment = await getEquipment({ department, status, search });
         return NextResponse.json(equipment);
     } catch (error) {
         console.error('Get equipment error:', error);
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const equipment = createEquipment(result.data);
+        const equipment = await createEquipment(result.data);
         return NextResponse.json(equipment, { status: 201 });
     } catch (error) {
         console.error('Create equipment error:', error);

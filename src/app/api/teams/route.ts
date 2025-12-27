@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const teams = getTeams();
+        const teams = await getTeams();
         return NextResponse.json(teams);
     } catch (error) {
         console.error('Get teams error:', error);
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const team = createTeam(result.data);
+        const team = await createTeam(result.data);
         return NextResponse.json(team, { status: 201 });
     } catch (error) {
         console.error('Create team error:', error);

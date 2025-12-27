@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const publicPaths = ['/login', '/api/auth/login'];
+const publicPaths = ['/login', '/signup', '/api/auth/login', '/api/auth/register'];
 const JWT_SECRET = process.env.JWT_SECRET || 'gearguard-secret-key-change-in-production';
 
 export async function middleware(request: NextRequest) {

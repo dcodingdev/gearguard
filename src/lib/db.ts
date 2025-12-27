@@ -1,31 +1,34 @@
+import dbConnect from './mongodb';
+import {
+    UserModel,
+    EquipmentModel,
+    MaintenanceTeamModel,
+    MaintenanceRequestModel,
+    ActivityLogModel
+} from './models';
 import { User, Equipment, MaintenanceTeam, MaintenanceRequest, ActivityLog } from '@/types';
 import { hashPassword } from './auth';
 
-// Generate unique IDs
+// Generate unique IDs (keeping the same format for consistency)
 export function generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// In-memory database for server-side operations
-// This simulates a database - in production, use a real database
-
-let users: User[] = [];
-let equipment: Equipment[] = [];
-let teams: MaintenanceTeam[] = [];
-let requests: MaintenanceRequest[] = [];
-let activityLog: ActivityLog[] = [];
-let isSeeded = false;
-
 // Seed data function
-export function seedDatabase() {
-    if (isSeeded) return;
+export async function seedDatabase() {
+    await dbConnect();
 
+    // Check if database is already seeded
+    const userCount = await UserModel.countDocuments();
+    if (userCount > 0) return;
+
+    console.log('Seeding database...');
     const now = new Date().toISOString();
 
     // Seed Users
-    users = [
+    const users = [
         {
-            id: 'user-1',
+            _id: 'user-1',
             name: 'John Admin',
             email: 'admin@gearguard.com',
             password: hashPassword('admin123'),
@@ -35,7 +38,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'user-2',
+            _id: 'user-2',
             name: 'Sarah Manager',
             email: 'manager@gearguard.com',
             password: hashPassword('manager123'),
@@ -45,7 +48,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'user-3',
+            _id: 'user-3',
             name: 'Mike Technician',
             email: 'tech1@gearguard.com',
             password: hashPassword('tech123'),
@@ -56,7 +59,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'user-4',
+            _id: 'user-4',
             name: 'Lisa Technician',
             email: 'tech2@gearguard.com',
             password: hashPassword('tech123'),
@@ -67,7 +70,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'user-5',
+            _id: 'user-5',
             name: 'Tom Electrician',
             email: 'tech3@gearguard.com',
             password: hashPassword('tech123'),
@@ -78,7 +81,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'user-6',
+            _id: 'user-6',
             name: 'Amy IT Support',
             email: 'tech4@gearguard.com',
             password: hashPassword('tech123'),
@@ -90,44 +93,46 @@ export function seedDatabase() {
         },
     ];
 
+    await UserModel.insertMany(users);
+
     // Seed Teams
-    teams = [
+    const teams = [
         {
-            id: 'team-1',
+            _id: 'team-1',
             name: 'Mechanics',
             specialization: 'Heavy Machinery & Vehicles',
             description: 'Expert team for all mechanical repairs and maintenance',
             members: [
-                { id: 'member-1', userId: 'user-3', name: 'Mike Technician', email: 'tech1@gearguard.com', role: 'lead', isAvailable: true },
-                { id: 'member-2', userId: 'user-4', name: 'Lisa Technician', email: 'tech2@gearguard.com', role: 'technician', isAvailable: true },
+                { userId: 'user-3', name: 'Mike Technician', email: 'tech1@gearguard.com', role: 'lead', isAvailable: true },
+                { userId: 'user-4', name: 'Lisa Technician', email: 'tech2@gearguard.com', role: 'technician', isAvailable: true },
             ],
             createdAt: now,
             updatedAt: now,
         },
         {
-            id: 'team-2',
+            _id: 'team-2',
             name: 'Electricians',
             specialization: 'Electrical Systems',
             description: 'Specialized in electrical repairs and installations',
             members: [
-                { id: 'member-3', userId: 'user-5', name: 'Tom Electrician', email: 'tech3@gearguard.com', role: 'lead', isAvailable: true },
+                { userId: 'user-5', name: 'Tom Electrician', email: 'tech3@gearguard.com', role: 'lead', isAvailable: true },
             ],
             createdAt: now,
             updatedAt: now,
         },
         {
-            id: 'team-3',
+            _id: 'team-3',
             name: 'IT Support',
             specialization: 'Computer & Network',
             description: 'IT infrastructure and computer maintenance',
             members: [
-                { id: 'member-4', userId: 'user-6', name: 'Amy IT Support', email: 'tech4@gearguard.com', role: 'lead', isAvailable: true },
+                { userId: 'user-6', name: 'Amy IT Support', email: 'tech4@gearguard.com', role: 'lead', isAvailable: true },
             ],
             createdAt: now,
             updatedAt: now,
         },
         {
-            id: 'team-4',
+            _id: 'team-4',
             name: 'Facilities',
             specialization: 'Building Maintenance',
             description: 'General facilities and building maintenance',
@@ -137,10 +142,12 @@ export function seedDatabase() {
         },
     ];
 
+    await MaintenanceTeamModel.insertMany(teams);
+
     // Seed Equipment
-    equipment = [
+    const equipment = [
         {
-            id: 'equip-1',
+            _id: 'equip-1',
             name: 'CNC Machine A1',
             serialNumber: 'CNC-2023-001',
             category: 'machine',
@@ -156,7 +163,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-2',
+            _id: 'equip-2',
             name: 'Forklift FL-01',
             serialNumber: 'FL-2022-045',
             category: 'vehicle',
@@ -172,7 +179,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-3',
+            _id: 'equip-3',
             name: 'Dell Workstation WS-15',
             serialNumber: 'DELL-WS-2024-015',
             category: 'computer',
@@ -188,7 +195,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-4',
+            _id: 'equip-4',
             name: 'Industrial Press P-200',
             serialNumber: 'IP-2021-200',
             category: 'machine',
@@ -204,7 +211,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-5',
+            _id: 'equip-5',
             name: 'HVAC Unit AC-3',
             serialNumber: 'HVAC-2020-003',
             category: 'other',
@@ -218,7 +225,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-6',
+            _id: 'equip-6',
             name: 'Delivery Van V-02',
             serialNumber: 'VAN-2023-002',
             category: 'vehicle',
@@ -234,7 +241,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-7',
+            _id: 'equip-7',
             name: 'Server Rack SR-01',
             serialNumber: 'SRV-2022-001',
             category: 'computer',
@@ -250,7 +257,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'equip-8',
+            _id: 'equip-8',
             name: 'Welding Station WS-02',
             serialNumber: 'WLD-2019-002',
             category: 'machine',
@@ -266,14 +273,16 @@ export function seedDatabase() {
         },
     ];
 
+    await EquipmentModel.insertMany(equipment);
+
     // Seed Requests
     const yesterday = new Date(Date.now() - 86400000).toISOString();
     const tomorrow = new Date(Date.now() + 86400000).toISOString();
     const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString();
 
-    requests = [
+    const requests = [
         {
-            id: 'req-1',
+            _id: 'req-1',
             subject: 'Oil leak in CNC Machine',
             description: 'Noticed oil leaking from the hydraulic system. Needs immediate attention.',
             type: 'corrective',
@@ -288,7 +297,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'req-2',
+            _id: 'req-2',
             subject: 'Forklift annual inspection',
             description: 'Scheduled annual safety inspection and maintenance.',
             type: 'preventive',
@@ -302,7 +311,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'req-3',
+            _id: 'req-3',
             subject: 'Workstation RAM upgrade',
             description: 'Upgrade RAM from 16GB to 32GB for better performance.',
             type: 'corrective',
@@ -317,7 +326,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'req-4',
+            _id: 'req-4',
             subject: 'Press bearing replacement',
             description: 'Replace worn bearings to prevent further damage.',
             type: 'corrective',
@@ -332,7 +341,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'req-5',
+            _id: 'req-5',
             subject: 'HVAC filter change',
             description: 'Quarterly filter replacement for AC units.',
             type: 'preventive',
@@ -349,7 +358,7 @@ export function seedDatabase() {
             updatedAt: now,
         },
         {
-            id: 'req-6',
+            _id: 'req-6',
             subject: 'Van oil change',
             description: 'Regular oil change and fluid check.',
             type: 'preventive',
@@ -364,206 +373,225 @@ export function seedDatabase() {
         },
     ];
 
-    isSeeded = true;
-}
+    await MaintenanceRequestModel.insertMany(requests);
 
-// Initialize database
-seedDatabase();
+    console.log('Database seeded successfully');
+}
 
 // User operations
-export function getUsers(): User[] {
-    return users;
+export async function getUsers(): Promise<User[]> {
+    await dbConnect();
+    return UserModel.find({}).lean();
 }
 
-export function getUserById(id: string): User | undefined {
-    return users.find(u => u.id === id);
+export async function getUserById(id: string): Promise<User | undefined> {
+    await dbConnect();
+    const user = await UserModel.findById(id).lean();
+    return user as User | undefined;
 }
 
-export function getUserByEmail(email: string): User | undefined {
-    return users.find(u => u.email === email);
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+    await dbConnect();
+    const user = await UserModel.findOne({ email }).lean();
+    return user as User | undefined;
 }
 
-export function createUser(data: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): User {
-    const newUser: User = {
+export async function createUser(data: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
+    await dbConnect();
+    const newUser = await UserModel.create({
         ...data,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    users.push(newUser);
-    return newUser;
+        _id: generateId(), // Explicitly set ID if we want to maintain string ID format
+    });
+    return newUser.toJSON();
 }
 
-export function updateUser(id: string, data: Partial<User>): User | null {
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) return null;
-    users[index] = { ...users[index], ...data, updatedAt: new Date().toISOString() };
-    return users[index];
+export async function updateUser(id: string, data: Partial<User>): Promise<User | null> {
+    await dbConnect();
+    const updatedUser = await UserModel.findByIdAndUpdate(id, data, { new: true }).lean();
+    return updatedUser as User | null;
 }
 
-export function deleteUser(id: string): boolean {
-    const index = users.findIndex(u => u.id === id);
-    if (index === -1) return false;
-    users.splice(index, 1);
-    return true;
+export async function deleteUser(id: string): Promise<boolean> {
+    await dbConnect();
+    const result = await UserModel.findByIdAndDelete(id);
+    return !!result;
 }
 
 // Equipment operations
-export function getEquipment(filters?: { department?: string; status?: string; search?: string }): Equipment[] {
-    let result = equipment;
+export async function getEquipment(filters?: { department?: string; status?: string; search?: string }): Promise<Equipment[]> {
+    await dbConnect();
+    const query: any = {};
     if (filters?.department) {
-        result = result.filter(e => e.department === filters.department);
+        query.department = filters.department;
     }
     if (filters?.status) {
-        result = result.filter(e => e.status === filters.status);
+        query.status = filters.status;
     }
     if (filters?.search) {
-        const search = filters.search.toLowerCase();
-        result = result.filter(e =>
-            e.name.toLowerCase().includes(search) ||
-            e.serialNumber.toLowerCase().includes(search) ||
-            e.location.toLowerCase().includes(search)
-        );
+        const search = filters.search;
+        query.$or = [
+            { name: { $regex: search, $options: 'i' } },
+            { serialNumber: { $regex: search, $options: 'i' } },
+            { location: { $regex: search, $options: 'i' } }
+        ];
     }
-    return result;
+    return EquipmentModel.find(query).lean();
 }
 
-export function getEquipmentById(id: string): Equipment | undefined {
-    return equipment.find(e => e.id === id);
+export async function getEquipmentById(id: string): Promise<Equipment | undefined> {
+    await dbConnect();
+    const equipment = await EquipmentModel.findById(id).lean();
+    return equipment as Equipment | undefined;
 }
 
-export function createEquipment(data: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>): Equipment {
-    const newEquipment: Equipment = {
+export async function createEquipment(data: Omit<Equipment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Equipment> {
+    await dbConnect();
+    const newEquipment = await EquipmentModel.create({
         ...data,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    equipment.push(newEquipment);
-    return newEquipment;
+        _id: generateId(),
+    });
+    return newEquipment.toJSON();
 }
 
-export function updateEquipment(id: string, data: Partial<Equipment>): Equipment | null {
-    const index = equipment.findIndex(e => e.id === id);
-    if (index === -1) return null;
-    equipment[index] = { ...equipment[index], ...data, updatedAt: new Date().toISOString() };
-    return equipment[index];
+export async function updateEquipment(id: string, data: Partial<Equipment>): Promise<Equipment | null> {
+    await dbConnect();
+    const updatedEquipment = await EquipmentModel.findByIdAndUpdate(id, data, { new: true }).lean();
+    return updatedEquipment as Equipment | null;
 }
 
-export function deleteEquipment(id: string): boolean {
-    const index = equipment.findIndex(e => e.id === id);
-    if (index === -1) return false;
-    equipment.splice(index, 1);
-    return true;
+export async function deleteEquipment(id: string): Promise<boolean> {
+    await dbConnect();
+    const result = await EquipmentModel.findByIdAndDelete(id);
+    return !!result;
 }
 
 // Team operations
-export function getTeams(): MaintenanceTeam[] {
-    return teams;
+export async function getTeams(): Promise<MaintenanceTeam[]> {
+    await dbConnect();
+    return MaintenanceTeamModel.find({}).lean();
 }
 
-export function getTeamById(id: string): MaintenanceTeam | undefined {
-    return teams.find(t => t.id === id);
+export async function getTeamById(id: string): Promise<MaintenanceTeam | undefined> {
+    await dbConnect();
+    const team = await MaintenanceTeamModel.findById(id).lean();
+    return team as MaintenanceTeam | undefined;
 }
 
-export function createTeam(data: Omit<MaintenanceTeam, 'id' | 'createdAt' | 'updatedAt' | 'members'>): MaintenanceTeam {
-    const newTeam: MaintenanceTeam = {
+export async function createTeam(data: Omit<MaintenanceTeam, 'id' | 'createdAt' | 'updatedAt' | 'members'>): Promise<MaintenanceTeam> {
+    await dbConnect();
+    const newTeam = await MaintenanceTeamModel.create({
         ...data,
-        id: generateId(),
-        members: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    teams.push(newTeam);
-    return newTeam;
+        _id: generateId(),
+        members: []
+    });
+    return newTeam.toJSON();
 }
 
-export function updateTeam(id: string, data: Partial<MaintenanceTeam>): MaintenanceTeam | null {
-    const index = teams.findIndex(t => t.id === id);
-    if (index === -1) return null;
-    teams[index] = { ...teams[index], ...data, updatedAt: new Date().toISOString() };
-    return teams[index];
+export async function updateTeam(id: string, data: Partial<MaintenanceTeam>): Promise<MaintenanceTeam | null> {
+    await dbConnect();
+    const updatedTeam = await MaintenanceTeamModel.findByIdAndUpdate(id, data, { new: true }).lean();
+    return updatedTeam as MaintenanceTeam | null;
 }
 
-export function deleteTeam(id: string): boolean {
-    const index = teams.findIndex(t => t.id === id);
-    if (index === -1) return false;
-    teams.splice(index, 1);
-    return true;
+export async function deleteTeam(id: string): Promise<boolean> {
+    await dbConnect();
+    const result = await MaintenanceTeamModel.findByIdAndDelete(id);
+    return !!result;
 }
 
 // Request operations
-export function getRequests(filters?: { status?: string; type?: string; teamId?: string; equipmentId?: string }): MaintenanceRequest[] {
-    let result = requests;
-    if (filters?.status) {
-        result = result.filter(r => r.status === filters.status);
-    }
-    if (filters?.type) {
-        result = result.filter(r => r.type === filters.type);
-    }
-    if (filters?.teamId) {
-        result = result.filter(r => r.teamId === filters.teamId);
-    }
-    if (filters?.equipmentId) {
-        result = result.filter(r => r.equipmentId === filters.equipmentId);
-    }
-    return result;
+export async function getRequests(filters?: { status?: string; type?: string; teamId?: string; equipmentId?: string }): Promise<MaintenanceRequest[]> {
+    await dbConnect();
+    const query: any = {};
+    if (filters?.status) query.status = filters.status;
+    if (filters?.type) query.type = filters.type;
+    if (filters?.teamId) query.teamId = filters.teamId;
+    if (filters?.equipmentId) query.equipmentId = filters.equipmentId;
+
+    return MaintenanceRequestModel.find(query).sort({ createdAt: -1 }).lean();
 }
 
-export function getRequestById(id: string): MaintenanceRequest | undefined {
-    return requests.find(r => r.id === id);
+export async function getRequestById(id: string): Promise<MaintenanceRequest | undefined> {
+    await dbConnect();
+    const request = await MaintenanceRequestModel.findById(id).lean();
+    return request as MaintenanceRequest | undefined;
 }
 
-export function createRequest(data: Omit<MaintenanceRequest, 'id' | 'createdAt' | 'updatedAt'>): MaintenanceRequest {
-    const newRequest: MaintenanceRequest = {
+export async function createRequest(data: Omit<MaintenanceRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<MaintenanceRequest> {
+    await dbConnect();
+    const newRequest = await MaintenanceRequestModel.create({
         ...data,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
-    requests.push(newRequest);
-    return newRequest;
+        _id: generateId(),
+    });
+    return newRequest.toJSON();
 }
 
-export function updateRequest(id: string, data: Partial<MaintenanceRequest>): MaintenanceRequest | null {
-    const index = requests.findIndex(r => r.id === id);
-    if (index === -1) return null;
-    requests[index] = { ...requests[index], ...data, updatedAt: new Date().toISOString() };
-    return requests[index];
+export async function updateRequest(id: string, data: Partial<MaintenanceRequest>): Promise<MaintenanceRequest | null> {
+    await dbConnect();
+    const updatedRequest = await MaintenanceRequestModel.findByIdAndUpdate(id, data, { new: true }).lean();
+    return updatedRequest as MaintenanceRequest | null;
 }
 
-export function deleteRequest(id: string): boolean {
-    const index = requests.findIndex(r => r.id === id);
-    if (index === -1) return false;
-    requests.splice(index, 1);
-    return true;
+export async function deleteRequest(id: string): Promise<boolean> {
+    await dbConnect();
+    const result = await MaintenanceRequestModel.findByIdAndDelete(id);
+    return !!result;
 }
 
 // Activity log
-export function getActivityLog(limit = 10): ActivityLog[] {
-    return activityLog.slice(-limit).reverse();
+export async function getActivityLog(limit = 10): Promise<ActivityLog[]> {
+    await dbConnect();
+    return ActivityLogModel.find({}).sort({ createdAt: -1 }).limit(limit).lean();
 }
 
-export function addActivityLog(data: Omit<ActivityLog, 'id' | 'createdAt'>): void {
-    activityLog.push({
+export async function addActivityLog(data: Omit<ActivityLog, 'id' | 'createdAt'>): Promise<void> {
+    await dbConnect();
+    await ActivityLogModel.create({
         ...data,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
+        _id: generateId(),
     });
 }
 
 // Dashboard stats
-export function getDashboardStats() {
+export async function getDashboardStats() {
+    await dbConnect();
+    const [
+        totalEquipment,
+        operationalEquipment,
+        underMaintenanceEquipment,
+        outOfServiceEquipment,
+        totalRequests,
+        openRequests,
+        inProgressRequests,
+        completedRequests,
+        totalTeams,
+        technicians
+    ] = await Promise.all([
+        EquipmentModel.countDocuments(),
+        EquipmentModel.countDocuments({ status: 'operational' }),
+        EquipmentModel.countDocuments({ status: 'under_maintenance' }),
+        EquipmentModel.countDocuments({ status: 'out_of_service' }),
+        MaintenanceRequestModel.countDocuments(),
+        MaintenanceRequestModel.countDocuments({ status: 'new' }),
+        MaintenanceRequestModel.countDocuments({ status: 'in_progress' }),
+        MaintenanceRequestModel.countDocuments({ status: 'repaired' }),
+        MaintenanceTeamModel.countDocuments(),
+        UserModel.countDocuments({ role: 'technician' })
+    ]);
+
     return {
-        totalEquipment: equipment.length,
-        operationalEquipment: equipment.filter(e => e.status === 'operational').length,
-        underMaintenanceEquipment: equipment.filter(e => e.status === 'under_maintenance').length,
-        outOfServiceEquipment: equipment.filter(e => e.status === 'out_of_service').length,
-        totalRequests: requests.length,
-        openRequests: requests.filter(r => r.status === 'new').length,
-        inProgressRequests: requests.filter(r => r.status === 'in_progress').length,
-        completedRequests: requests.filter(r => r.status === 'repaired').length,
-        totalTeams: teams.length,
-        totalTechnicians: users.filter(u => u.role === 'technician').length,
+        totalEquipment,
+        operationalEquipment,
+        underMaintenanceEquipment,
+        outOfServiceEquipment,
+        totalRequests,
+        openRequests,
+        inProgressRequests,
+        completedRequests,
+        totalTeams,
+        totalTechnicians: technicians,
     };
 }
+
+// Initialize database
+seedDatabase().catch(console.error);

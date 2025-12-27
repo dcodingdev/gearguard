@@ -19,7 +19,7 @@ export async function POST(
         }
 
         const { id } = await params;
-        const team = getTeamById(id);
+        const team = await getTeamById(id);
 
         if (!team) {
             return NextResponse.json({ error: 'Team not found' }, { status: 404 });
@@ -41,7 +41,7 @@ export async function POST(
         };
 
         const updatedMembers = [...team.members, newMember];
-        const updatedTeam = updateTeam(id, { members: updatedMembers });
+        const updatedTeam = await updateTeam(id, { members: updatedMembers });
 
         return NextResponse.json(updatedTeam, { status: 201 });
     } catch (error) {
@@ -65,7 +65,7 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const team = getTeamById(id);
+        const team = await getTeamById(id);
 
         if (!team) {
             return NextResponse.json({ error: 'Team not found' }, { status: 404 });
@@ -79,7 +79,7 @@ export async function DELETE(
         }
 
         const updatedMembers = team.members.filter(m => m.id !== memberId);
-        const updatedTeam = updateTeam(id, { members: updatedMembers });
+        const updatedTeam = await updateTeam(id, { members: updatedMembers });
 
         return NextResponse.json(updatedTeam);
     } catch (error) {

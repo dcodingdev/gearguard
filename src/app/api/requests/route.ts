@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
         const teamId = searchParams.get('teamId') || undefined;
         const equipmentId = searchParams.get('equipmentId') || undefined;
 
-        let requests = getRequests({ status, type, teamId, equipmentId });
+        let requests = await getRequests({ status, type, teamId, equipmentId });
 
         // Technicians can only see requests for their team
         if (auth.role === 'technician' && auth.teamId) {
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const maintenanceRequest = createRequest({
+        const maintenanceRequest = await createRequest({
             ...result.data,
             createdBy: auth.userId,
         });

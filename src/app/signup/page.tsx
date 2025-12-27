@@ -4,33 +4,46 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Wrench, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { loginSchema, LoginSchemaType } from '@/schemas/auth.schema';
+import { registerSchema, RegisterSchemaType } from '@/schemas/auth.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export default function LoginPage() {
+export default function SignupPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const router = useRouter();
 
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<LoginSchemaType>({
-        resolver: zodResolver(loginSchema),
+    } = useForm<RegisterSchemaType>({
+        resolver: zodResolver(registerSchema),
     });
 
-    const onSubmit = async (data: LoginSchemaType) => {
+    const onSubmit = async (data: RegisterSchemaType) => {
         try {
             setError('');
-            await login(data.email, data.password);
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Registration failed');
+            }
+
+            // Redirect to login on success
+            router.push('/login?registered=true');
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : 'Login failed. Please try again.';
+            const errorMessage = err instanceof Error ? err.message : 'Registration failed';
             setError(errorMessage);
         }
     };
@@ -50,10 +63,10 @@ export default function LoginPage() {
                     </div>
                     <div>
                         <CardTitle className="text-2xl font-bold text-white">
-                            Welcome to GearGuard
+                            Create an Account
                         </CardTitle>
                         <CardDescription className="text-slate-400">
-                            Maintenance Management System
+                            Join GearGuard Maintenance System
                         </CardDescription>
                     </div>
                 </CardHeader>
@@ -67,6 +80,22 @@ export default function LoginPage() {
                             </div>
                         )}
 
+                        {/* Name */}
+                        <div className="space-y-2">
+                            <Label htmlFor="name" className="text-slate-300">
+                                Full Name
+                            </Label>
+                            <Input
+                                id="name"
+                                placeholder="John Doe"
+                                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                {...register('name')}
+                            />
+                            {errors.name && (
+                                <p className="text-sm text-red-400">{errors.name.message}</p>
+                            )}
+                        </div>
+
                         {/* Email */}
                         <div className="space-y-2">
                             <Label htmlFor="email" className="text-slate-300">
@@ -75,7 +104,7 @@ export default function LoginPage() {
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="admin@gearguard.com"
+                                placeholder="user@gearguard.com"
                                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
                                 {...register('email')}
                             />
@@ -114,6 +143,23 @@ export default function LoginPage() {
                             )}
                         </div>
 
+                        {/* Confirm Password */}
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmPassword" className="text-slate-300">
+                                Confirm Password
+                            </Label>
+                            <Input
+                                id="confirmPassword"
+                                type="password"
+                                placeholder="••••••••"
+                                className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
+                                {...register('confirmPassword')}
+                            />
+                            {errors.confirmPassword && (
+                                <p className="text-sm text-red-400">{errors.confirmPassword.message}</p>
+                            )}
+                        </div>
+
                         {/* Submit */}
                         <Button
                             type="submit"
@@ -123,42 +169,21 @@ export default function LoginPage() {
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing in...
+                                    Creating account...
                                 </>
                             ) : (
-                                'Sign In'
+                                'Sign Up'
                             )}
                         </Button>
 
-                        {/* Sign Up Link */}
+                        {/* Login Link */}
                         <div className="text-center text-sm text-slate-400">
-                            New to GearGuard?{' '}
-                            <Link href="/signup" className="text-blue-400 hover:text-blue-300 font-medium">
-                                Sign Up
+                            Already have an account?{' '}
+                            <Link href="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+                                Sign In
                             </Link>
                         </div>
                     </form>
-
-                    {/* Demo Credentials */}
-                    <div className="mt-6 p-4 rounded-lg bg-slate-800/50 border border-slate-700">
-                        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                            Demo Accounts
-                        </p>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between text-slate-300">
-                                <span className="text-slate-500">Admin:</span>
-                                <span>admin@gearguard.com / admin123</span>
-                            </div>
-                            <div className="flex justify-between text-slate-300">
-                                <span className="text-slate-500">Manager:</span>
-                                <span>manager@gearguard.com / manager123</span>
-                            </div>
-                            <div className="flex justify-between text-slate-300">
-                                <span className="text-slate-500">Technician:</span>
-                                <span>tech1@gearguard.com / tech123</span>
-                            </div>
-                        </div>
-                    </div>
                 </CardContent>
             </Card>
         </div>

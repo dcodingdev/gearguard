@@ -14,7 +14,7 @@ export async function GET(
         }
 
         const { id } = await params;
-        const equipment = getEquipmentById(id);
+        const equipment = await getEquipmentById(id);
 
         if (!equipment) {
             return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
@@ -52,7 +52,7 @@ export async function PUT(
             );
         }
 
-        const equipment = updateEquipment(id, result.data);
+        const equipment = await updateEquipment(id, result.data);
 
         if (!equipment) {
             return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
@@ -80,7 +80,7 @@ export async function DELETE(
         }
 
         const { id } = await params;
-        const deleted = deleteEquipment(id);
+        const deleted = await deleteEquipment(id);
 
         if (!deleted) {
             return NextResponse.json({ error: 'Equipment not found' }, { status: 404 });
