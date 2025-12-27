@@ -1,0 +1,335 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import {
+    DndContext,
+    DragOverlay,
+    closestCorners,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragStartEvent,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { Plus, Calendar, LayoutGrid, List, Clock, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useRequests } from '@/hooks/useRequests';
+import { useAuth } from '@/context/AuthContext';
+import { MaintenanceRequest } from '@/types';
+import { REQUEST_STATUS, REQUEST_PRIORITY } from '@/constants';
+
+const KANBAN_COLUMNS = [
+    { id: 'open', label: 'Open', color: 'bg-blue-500' },
+    { id: 'in_progress', label: 'In Progress', color: 'bg-amber-500' },
+    { id: 'completed', label: 'Completed', color: 'bg-green-500' },
+];
+
+interface RequestCardProps {
+    request: MaintenanceRequest;
+    isDragging?: boolean;
+}
+
+function RequestCard({ request, isDragging }: RequestCardProps) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+        id: request.id,
+        data: { type: 'request', request },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    const priorityConfig = REQUEST_PRIORITY.find((p) => p.value === request.priority);
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing"
+        >
+            <Card className="bg-slate-800 border-slate-700 hover:border-slate-600 transition-colors">
+                <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-medium text-white text-sm line-clamp-2">{request.subject}</h4>
+                        <Badge
+                            variant="outline"
+                            className={`shrink-0 text-[10px] ${request.priority === 'critical'
+                                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                    : request.priority === 'high'
+                                        ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                                        : request.priority === 'medium'
+                                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                            : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                                }`}
+                        >
+                            {priorityConfig?.label}
+                        </Badge>
+                    </div>
+
+                    <div className="space-y-2 text-xs text-slate-400">
+                        <div className="flex items-center gap-1">
+                            <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] ${request.type === 'corrective'
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-blue-500/20 text-blue-400'
+                                    }`}
+                            >
+                                {request.type === 'corrective' ? 'Corrective' : 'Preventive'}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            <span>
+                                {new Date(request.scheduledDate).toLocaleDateString()}
+                            </span>
+                        </div>
+                    </div>
+
+                    <Link href={`/requests/${request.id}`} className="block mt-3">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="w-full h-7 text-xs hover:bg-slate-700"
+                        >
+                            View Details
+                        </Button>
+                    </Link>
+                </CardContent>
+            </Card>
+        </div>
+    );
+}
+
+interface KanbanColumnProps {
+    status: { id: string; label: string; color: string };
+    requests: MaintenanceRequest[];
+}
+
+function KanbanColumn({ status, requests }: KanbanColumnProps) {
+    return (
+        <div className="flex flex-col h-full">
+            <div className="flex items-center gap-2 mb-4">
+                <div className={`w-3 h-3 rounded-full ${status.color}`} />
+                <h3 className="font-semibold text-white">{status.label}</h3>
+                <Badge variant="outline" className="text-slate-400">
+                    {requests.length}
+                </Badge>
+            </div>
+
+            <div className="flex-1 space-y-3 min-h-[200px] p-2 rounded-lg bg-slate-900/50 border border-slate-800">
+                <SortableContext
+                    items={requests.map((r) => r.id)}
+                    strategy={verticalListSortingStrategy}
+                >
+                    {requests.map((request) => (
+                        <RequestCard key={request.id} request={request} />
+                    ))}
+                </SortableContext>
+
+                {requests.length === 0 && (
+                    <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+                        <AlertTriangle className="h-6 w-6 mb-2" />
+                        <p className="text-sm">No requests</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+export default function RequestsPage() {
+    const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
+    const [activeId, setActiveId] = useState<string | null>(null);
+    const { requests, isLoading, updateStatus } = useRequests();
+    const { hasRole } = useAuth();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8,
+            },
+        })
+    );
+
+    const activeRequest = activeId ? requests.find((r) => r.id === activeId) : null;
+
+    const handleDragStart = (event: DragStartEvent) => {
+        setActiveId(event.active.id as string);
+    };
+
+    const handleDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        setActiveId(null);
+
+        if (!over) return;
+
+        const overId = over.id as string;
+        const activeRequest = requests.find((r) => r.id === active.id);
+
+        if (!activeRequest) return;
+
+        // Check if dropped on a column
+        const targetColumn = KANBAN_COLUMNS.find((col) => col.id === overId);
+        if (targetColumn && activeRequest.status !== targetColumn.id) {
+            await updateStatus(activeRequest.id, targetColumn.id);
+        }
+
+        // Check if dropped on another request (get its column)
+        const targetRequest = requests.find((r) => r.id === overId);
+        if (targetRequest && activeRequest.status !== targetRequest.status) {
+            await updateStatus(activeRequest.id, targetRequest.status);
+        }
+    };
+
+    const getRequestsByStatus = (status: string) => {
+        return requests.filter((r) => r.status === status);
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Maintenance Requests</h1>
+                    <p className="text-slate-400">Track and manage all maintenance work orders</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as typeof viewMode)}>
+                        <TabsList className="bg-slate-800">
+                            <TabsTrigger value="kanban" className="gap-2">
+                                <LayoutGrid className="h-4 w-4" />
+                                Kanban
+                            </TabsTrigger>
+                            <TabsTrigger value="list" className="gap-2">
+                                <List className="h-4 w-4" />
+                                List
+                            </TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                    <Link href="/requests/calendar">
+                        <Button variant="outline">
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Calendar
+                        </Button>
+                    </Link>
+                    {hasRole(['admin', 'manager']) && (
+                        <Link href="/requests/new">
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="h-4 w-4 mr-2" />
+                                New Request
+                            </Button>
+                        </Link>
+                    )}
+                </div>
+            </div>
+
+            {/* Kanban Board */}
+            {viewMode === 'kanban' && (
+                <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCorners}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handleDragEnd}
+                >
+                    <div className="grid grid-cols-3 gap-6">
+                        {KANBAN_COLUMNS.map((column) => (
+                            <KanbanColumn
+                                key={column.id}
+                                status={column}
+                                requests={getRequestsByStatus(column.id)}
+                            />
+                        ))}
+                    </div>
+
+                    <DragOverlay>
+                        {activeRequest ? <RequestCard request={activeRequest} isDragging /> : null}
+                    </DragOverlay>
+                </DndContext>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardHeader>
+                        <CardTitle className="text-white">All Requests</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            {requests.map((request) => {
+                                const statusConfig = REQUEST_STATUS.find((s) => s.value === request.status);
+                                const priorityConfig = REQUEST_PRIORITY.find((p) => p.value === request.priority);
+
+                                return (
+                                    <div
+                                        key={request.id}
+                                        className="flex items-center justify-between p-4 rounded-lg bg-slate-800/50 border border-slate-700"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div
+                                                className={`w-2 h-12 rounded-full ${statusConfig?.color || 'bg-slate-500'}`}
+                                            />
+                                            <div>
+                                                <h4 className="font-medium text-white">{request.subject}</h4>
+                                                <p className="text-sm text-slate-400">
+                                                    {request.type === 'corrective' ? 'Corrective' : 'Preventive'} •
+                                                    Scheduled: {new Date(request.scheduledDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Badge
+                                                variant="outline"
+                                                className={`${statusConfig?.color.replace('bg-', 'bg-').concat('/20')} ${statusConfig?.color
+                                                    .replace('bg-', 'text-')
+                                                    .replace('-500', '-400')} border-${statusConfig?.color
+                                                        .replace('bg-', '')
+                                                        .replace('-500', '-500/30')}`}
+                                            >
+                                                {statusConfig?.label}
+                                            </Badge>
+                                            <Badge
+                                                variant="outline"
+                                                className={
+                                                    request.priority === 'critical'
+                                                        ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                                        : request.priority === 'high'
+                                                            ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                                                            : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                                                }
+                                            >
+                                                {priorityConfig?.label}
+                                            </Badge>
+                                            <Link href={`/requests/${request.id}`}>
+                                                <Button variant="ghost" size="sm">
+                                                    View
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+    );
+}
