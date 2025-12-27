@@ -52,9 +52,9 @@ export type RequestPriorityValue = typeof REQUEST_PRIORITY[number]['value'];
 
 // Request Status
 export const REQUEST_STATUS = [
-    { value: 'open', label: 'Open', color: 'bg-blue-500' },
+    { value: 'new', label: 'New', color: 'bg-blue-500' },
     { value: 'in_progress', label: 'In Progress', color: 'bg-amber-500' },
-    { value: 'completed', label: 'Completed', color: 'bg-green-500' },
+    { value: 'repaired', label: 'Repaired', color: 'bg-green-500' },
     { value: 'cancelled', label: 'Cancelled', color: 'bg-slate-500' },
     { value: 'scrap', label: 'Scrap', color: 'bg-gray-500' },
 ] as const;

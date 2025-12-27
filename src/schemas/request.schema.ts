@@ -13,7 +13,7 @@ export const requestSchema = z.object({
     equipmentId: z.string().min(1, 'Please select equipment'),
     teamId: z.string().min(1, 'Please select a team'),
     assignedTechnicianId: z.string().optional(),
-    status: z.enum(statusValues).default('open'),
+    status: z.enum(statusValues),
     scheduledDate: z.string().min(1, 'Scheduled date is required'),
     completedDate: z.string().optional(),
     duration: z.number().min(0).optional(),

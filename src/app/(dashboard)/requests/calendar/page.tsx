@@ -6,7 +6,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Filter } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { useRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/context/AuthContext';
 import { MaintenanceRequest } from '@/types';
@@ -26,14 +28,20 @@ export default function CalendarPage() {
     const { requests, isLoading } = useRequests();
     const { hasRole } = useAuth();
     const [selectedRequest, setSelectedRequest] = useState<MaintenanceRequest | null>(null);
+    const [showPreventiveOnly, setShowPreventiveOnly] = useState(false);
 
-    const events = requests.map((request) => ({
+    // Filter requests based on toggle
+    const filteredRequests = showPreventiveOnly
+        ? requests.filter(r => r.type === 'preventive')
+        : requests;
+
+    const events = filteredRequests.map((request) => ({
         id: request.id,
         title: request.subject,
         date: request.scheduledDate,
         backgroundColor:
             request.type === 'preventive'
-                ? request.status === 'completed'
+                ? request.status === 'repaired'
                     ? '#22c55e'
                     : '#3b82f6'
                 : request.priority === 'critical'
@@ -45,13 +53,16 @@ export default function CalendarPage() {
         extendedProps: { request },
     }));
 
-    const handleEventClick = (info: { event: { extendedProps: { request: MaintenanceRequest } } }) => {
-        setSelectedRequest(info.event.extendedProps.request);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleEventClick = (info: any) => {
+        setSelectedRequest(info.event.extendedProps.request as MaintenanceRequest);
     };
 
-    const handleDateClick = (info: { dateStr: string }) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleDateClick = (info: any) => {
         if (hasRole(['admin', 'manager'])) {
-            router.push(`/requests/new?date=${info.dateStr}`);
+            // Pre-select preventive type when creating from calendar
+            router.push(`/requests/new?date=${info.dateStr}&type=preventive`);
         }
     };
 
@@ -78,14 +89,28 @@ export default function CalendarPage() {
                         <p className="text-slate-400">Schedule and view maintenance activities</p>
                     </div>
                 </div>
-                {hasRole(['admin', 'manager']) && (
-                    <Link href="/requests/new">
-                        <Button className="bg-blue-600 hover:bg-blue-700">
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Request
-                        </Button>
-                    </Link>
-                )}
+                <div className="flex items-center gap-4">
+                    {/* Preventive Only Toggle */}
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700">
+                        <Filter className="h-4 w-4 text-slate-400" />
+                        <Label htmlFor="preventive-filter" className="text-sm text-slate-300 cursor-pointer">
+                            Preventive Only
+                        </Label>
+                        <Switch
+                            id="preventive-filter"
+                            checked={showPreventiveOnly}
+                            onCheckedChange={setShowPreventiveOnly}
+                        />
+                    </div>
+                    {hasRole(['admin', 'manager']) && (
+                        <Link href="/requests/new?type=preventive">
+                            <Button className="bg-blue-600 hover:bg-blue-700">
+                                <Plus className="h-4 w-4 mr-2" />
+                                New Preventive Request
+                            </Button>
+                        </Link>
+                    )}
+                </div>
             </div>
 
             {/* Legend */}
@@ -94,22 +119,60 @@ export default function CalendarPage() {
                     <div className="w-3 h-3 rounded-full bg-blue-500" />
                     <span className="text-sm text-slate-400">Preventive</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-indigo-500" />
-                    <span className="text-sm text-slate-400">Corrective (Low/Medium)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-500" />
-                    <span className="text-sm text-slate-400">Corrective (High)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-sm text-slate-400">Corrective (Critical)</span>
-                </div>
+                {!showPreventiveOnly && (
+                    <>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-indigo-500" />
+                            <span className="text-sm text-slate-400">Corrective (Low/Medium)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-amber-500" />
+                            <span className="text-sm text-slate-400">Corrective (High)</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-red-500" />
+                            <span className="text-sm text-slate-400">Corrective (Critical)</span>
+                        </div>
+                    </>
+                )}
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                     <span className="text-sm text-slate-400">Completed</span>
                 </div>
+            </div>
+
+            {/* Stats Summary */}
+            <div className="grid grid-cols-3 gap-4">
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardContent className="pt-4">
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-blue-400">
+                                {requests.filter(r => r.type === 'preventive').length}
+                            </p>
+                            <p className="text-sm text-slate-400">Preventive Requests</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardContent className="pt-4">
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-amber-400">
+                                {requests.filter(r => r.type === 'preventive' && r.status === 'new').length}
+                            </p>
+                            <p className="text-sm text-slate-400">Scheduled (New)</p>
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-slate-900 border-slate-800">
+                    <CardContent className="pt-4">
+                        <div className="text-center">
+                            <p className="text-2xl font-bold text-green-400">
+                                {requests.filter(r => r.type === 'preventive' && r.status === 'repaired').length}
+                            </p>
+                            <p className="text-sm text-slate-400">Completed</p>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Calendar */}
@@ -155,7 +218,7 @@ export default function CalendarPage() {
                                 </Badge>
                                 <Badge
                                     className={
-                                        selectedRequest.status === 'completed'
+                                        selectedRequest.status === 'repaired'
                                             ? 'bg-green-500/20 text-green-400'
                                             : selectedRequest.status === 'in_progress'
                                                 ? 'bg-amber-500/20 text-amber-400'

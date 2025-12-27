@@ -91,12 +91,12 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
     const onSubmit = async (data: RequestSchemaType) => {
         try {
             // Business Logic: If moving to Repaired/Completed, require Duration
-            if ((data.status === 'completed' || data.status === 'repaired') && (!data.duration || data.duration <= 0)) {
+            if ((data.status === 'repaired') && (!data.duration || data.duration <= 0)) {
                 toast.error('Please record the Hours Spent (Duration) before completing the request.');
                 return;
             }
 
-            await updateRequest(id, data);
+            await updateRequest(id, data as unknown as Partial<import('@/types').MaintenanceRequest>);
             toast.success('Request updated successfully');
             router.push('/requests');
         } catch (error) {
@@ -118,7 +118,7 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
     const handleAssignSelf = () => {
         if (user) {
             setValue('assignedTechnicianId', user.id);
-            if (watch('status') === 'open') {
+            if (watch('status') === 'new') {
                 setValue('status', 'in_progress');
             }
             toast.info('Assigned to you');

@@ -42,7 +42,7 @@ export default function NewRequestPage() {
     } = useForm<RequestSchemaType>({
         resolver: zodResolver(requestSchema),
         defaultValues: {
-            status: 'open',
+            status: 'new',
             scheduledDate: defaultDate,
             priority: 'medium',
             type: 'corrective',
@@ -54,7 +54,7 @@ export default function NewRequestPage() {
 
     const onSubmit = async (data: RequestSchemaType) => {
         try {
-            await createRequest(data);
+            await createRequest(data as unknown as Partial<import('@/types').MaintenanceRequest>);
             toast.success('Request created successfully');
             router.push('/requests');
         } catch (error) {

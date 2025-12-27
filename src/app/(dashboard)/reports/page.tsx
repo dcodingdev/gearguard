@@ -6,13 +6,16 @@ import {
     Clock,
     CheckCircle2,
     AlertTriangle,
+    Users,
+    Boxes,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useRequests } from '@/hooks/useRequests';
 import { useEquipment } from '@/hooks/useEquipment';
-import { DEPARTMENTS, REQUEST_STATUS, EQUIPMENT_STATUS } from '@/constants';
+import { useTeams } from '@/hooks/useTeams';
+import { DEPARTMENTS, REQUEST_STATUS, EQUIPMENT_STATUS, EQUIPMENT_CATEGORIES } from '@/constants';
 import {
     BarChart,
     Bar,
@@ -35,6 +38,7 @@ export default function ReportsPage() {
     const { stats, isLoading } = useDashboard();
     const { requests } = useRequests();
     const { equipment } = useEquipment();
+    const { teams } = useTeams();
 
     // Equipment by Department
     const equipmentByDept = DEPARTMENTS.map((dept) => ({
@@ -59,6 +63,32 @@ export default function ReportsPage() {
         name: status.label,
         value: requests.filter((r) => r.status === status.value).length,
     }));
+
+    // PIVOT REPORTS: Requests by Team
+    const requestsByTeam = teams.map((team) => ({
+        name: team.name,
+        total: requests.filter((r) => r.teamId === team.id).length,
+        new: requests.filter((r) => r.teamId === team.id && r.status === 'new').length,
+        inProgress: requests.filter((r) => r.teamId === team.id && r.status === 'in_progress').length,
+        repaired: requests.filter((r) => r.teamId === team.id && r.status === 'repaired').length,
+    })).filter((t) => t.total > 0);
+
+    // PIVOT REPORTS: Requests by Equipment Category
+    const requestsByCategory = EQUIPMENT_CATEGORIES.map((cat) => ({
+        name: cat.label,
+        total: requests.filter((r) => {
+            const eq = equipment.find(e => e.id === r.equipmentId);
+            return eq?.category === cat.value;
+        }).length,
+        corrective: requests.filter((r) => {
+            const eq = equipment.find(e => e.id === r.equipmentId);
+            return eq?.category === cat.value && r.type === 'corrective';
+        }).length,
+        preventive: requests.filter((r) => {
+            const eq = equipment.find(e => e.id === r.equipmentId);
+            return eq?.category === cat.value && r.type === 'preventive';
+        }).length,
+    })).filter((c) => c.total > 0);
 
     // Mock trend data (in real app, this would come from API)
     const trendData = [
@@ -111,7 +141,7 @@ export default function ReportsPage() {
                                 <CheckCircle2 className="h-6 w-6 text-green-400" />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-400">Completed</p>
+                                <p className="text-sm text-slate-400">Repaired</p>
                                 <p className="text-2xl font-bold text-white">{stats?.completedRequests || 0}</p>
                             </div>
                         </div>
@@ -139,7 +169,7 @@ export default function ReportsPage() {
                                 <AlertTriangle className="h-6 w-6 text-red-400" />
                             </div>
                             <div>
-                                <p className="text-sm text-slate-400">Open</p>
+                                <p className="text-sm text-slate-400">New</p>
                                 <p className="text-2xl font-bold text-white">{stats?.openRequests || 0}</p>
                             </div>
                         </div>
@@ -153,6 +183,10 @@ export default function ReportsPage() {
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="equipment">Equipment</TabsTrigger>
                     <TabsTrigger value="requests">Requests</TabsTrigger>
+                    <TabsTrigger value="pivot" className="gap-2">
+                        <Users className="h-4 w-4" />
+                        Pivot Reports
+                    </TabsTrigger>
                     <TabsTrigger value="trends">Trends</TabsTrigger>
                 </TabsList>
 
@@ -280,6 +314,135 @@ export default function ReportsPage() {
                                         <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* NEW: Pivot Reports Tab */}
+                <TabsContent value="pivot" className="mt-6">
+                    <div className="grid gap-6 lg:grid-cols-2">
+                        {/* Requests per Team */}
+                        <Card className="bg-slate-900 border-slate-800">
+                            <CardHeader>
+                                <CardTitle className="text-white flex items-center gap-2">
+                                    <Users className="h-5 w-5" />
+                                    Requests per Team
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={requestsByTeam}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                            <XAxis dataKey="name" stroke="#64748b" />
+                                            <YAxis stroke="#64748b" />
+                                            <Tooltip
+                                                contentStyle={{
+                                                    backgroundColor: '#1e293b',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                }}
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="new" name="New" fill="#3b82f6" stackId="a" radius={[0, 0, 0, 0]} />
+                                            <Bar dataKey="inProgress" name="In Progress" fill="#f59e0b" stackId="a" radius={[0, 0, 0, 0]} />
+                                            <Bar dataKey="repaired" name="Repaired" fill="#22c55e" stackId="a" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Requests per Equipment Category */}
+                        <Card className="bg-slate-900 border-slate-800">
+                            <CardHeader>
+                                <CardTitle className="text-white flex items-center gap-2">
+                                    <Boxes className="h-5 w-5" />
+                                    Requests per Equipment Category
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="h-80">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={requestsByCategory}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                                            <XAxis dataKey="name" stroke="#64748b" />
+                                            <YAxis stroke="#64748b" />
+                                            <Tooltip
+                                                contentStyle={{
+                                                    backgroundColor: '#1e293b',
+                                                    border: '1px solid #334155',
+                                                    borderRadius: '8px',
+                                                }}
+                                            />
+                                            <Legend />
+                                            <Bar dataKey="corrective" name="Corrective" fill="#ef4444" radius={[0, 0, 0, 0]} />
+                                            <Bar dataKey="preventive" name="Preventive" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Summary Table */}
+                    <Card className="bg-slate-900 border-slate-800 mt-6">
+                        <CardHeader>
+                            <CardTitle className="text-white">Team Performance Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b border-slate-700">
+                                            <th className="text-left py-3 px-4 text-slate-400 font-medium">Team</th>
+                                            <th className="text-center py-3 px-4 text-slate-400 font-medium">Total</th>
+                                            <th className="text-center py-3 px-4 text-slate-400 font-medium">New</th>
+                                            <th className="text-center py-3 px-4 text-slate-400 font-medium">In Progress</th>
+                                            <th className="text-center py-3 px-4 text-slate-400 font-medium">Repaired</th>
+                                            <th className="text-center py-3 px-4 text-slate-400 font-medium">Completion Rate</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {requestsByTeam.map((team, index) => {
+                                            const completionRate = team.total > 0
+                                                ? Math.round((team.repaired / team.total) * 100)
+                                                : 0;
+                                            return (
+                                                <tr key={index} className="border-b border-slate-800">
+                                                    <td className="py-3 px-4 text-white font-medium">{team.name}</td>
+                                                    <td className="text-center py-3 px-4 text-slate-300">{team.total}</td>
+                                                    <td className="text-center py-3 px-4">
+                                                        <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-400">
+                                                            {team.new}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-center py-3 px-4">
+                                                        <span className="px-2 py-1 rounded bg-amber-500/20 text-amber-400">
+                                                            {team.inProgress}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-center py-3 px-4">
+                                                        <span className="px-2 py-1 rounded bg-green-500/20 text-green-400">
+                                                            {team.repaired}
+                                                        </span>
+                                                    </td>
+                                                    <td className="text-center py-3 px-4">
+                                                        <span className={`px-2 py-1 rounded ${completionRate >= 70
+                                                                ? 'bg-green-500/20 text-green-400'
+                                                                : completionRate >= 40
+                                                                    ? 'bg-amber-500/20 text-amber-400'
+                                                                    : 'bg-red-500/20 text-red-400'
+                                                            }`}>
+                                                            {completionRate}%
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
                             </div>
                         </CardContent>
                     </Card>
