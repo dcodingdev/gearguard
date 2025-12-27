@@ -28,6 +28,7 @@ import { useTeams } from '@/hooks/useTeams';
 import { useAuth } from '@/context/AuthContext';
 import { MaintenanceRequest } from '@/types';
 import { REQUEST_STATUS, REQUEST_PRIORITY } from '@/constants';
+import { toast } from 'sonner';
 
 const KANBAN_COLUMNS = [
     { id: 'new', label: 'New', color: 'bg-blue-500' },
@@ -252,7 +253,7 @@ export default function RequestsPage() {
     const sensors = useSensors(
         useSensor(PointerSensor, {
             activationConstraint: {
-                distance: 8,
+                distance: 5,
             },
         })
     );
@@ -269,21 +270,48 @@ export default function RequestsPage() {
 
         if (!over) return;
 
+        const activeId = active.id as string;
         const overId = over.id as string;
-        const activeRequest = requests.find((r) => r.id === active.id);
 
-        if (!activeRequest) return;
+        const draggedRequest = requests.find((r) => r.id === activeId);
+        if (!draggedRequest) return;
 
-        // Check if dropped on a column
+        // Determine target status
+        let targetStatus: string | undefined;
+
+        // Case 1: Dropped over a column
         const targetColumn = KANBAN_COLUMNS.find((col) => col.id === overId);
-        if (targetColumn && activeRequest.status !== targetColumn.id) {
-            await updateStatus(activeRequest.id, targetColumn.id);
+        if (targetColumn) {
+            targetStatus = targetColumn.id;
+        } else {
+            // Case 2: Dropped over another request
+            const targetRequest = requests.find((r) => r.id === overId);
+            if (targetRequest) {
+                targetStatus = targetRequest.status;
+            }
         }
 
-        // Check if dropped on another request (get its column)
-        const targetRequest = requests.find((r) => r.id === overId);
-        if (targetRequest && activeRequest.status !== targetRequest.status) {
-            await updateStatus(activeRequest.id, targetRequest.status);
+        if (targetStatus && targetStatus !== draggedRequest.status) {
+            // Optimistic update
+            const originalRequests = [...requests];
+            const updatedRequests = requests.map(r =>
+                r.id === activeId ? { ...r, status: targetStatus as any } : r
+            );
+
+            // Note: We need a way to update the local state if useRequests doesn't expose a setter
+            // Since useRequests is a custom hook, we might need to modify it or rely on refetch
+            // But for now, let's call the API
+            try {
+                await updateStatus(activeId, targetStatus);
+                if (targetStatus === 'scrap') {
+                    toast.success('Request moved to Scrap. Associated equipment has been marked as scrapped.');
+                } else {
+                    toast.success(`Request status updated to ${KANBAN_COLUMNS.find(c => c.id === targetStatus)?.label}`);
+                }
+            } catch (error) {
+                console.error('Failed to update status:', error);
+                toast.error('Failed to update request status');
+            }
         }
     };
 
@@ -360,7 +388,7 @@ export default function RequestsPage() {
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                 >
-                    <div className="grid grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {KANBAN_COLUMNS.map((column) => (
                             <KanbanColumn
                                 key={column.id}
@@ -371,13 +399,15 @@ export default function RequestsPage() {
                         ))}
                     </div>
 
-                    <DragOverlay>
-                        {activeRequest ? (
-                            <RequestCard
-                                request={activeRequest}
-                                isDragging
-                                technician={activeRequest.assignedTechnicianId ? technicianMap.get(activeRequest.assignedTechnicianId) : undefined}
-                            />
+                    <DragOverlay dropAnimation={null}>
+                        {activeId && activeRequest ? (
+                            <div className="w-full max-w-[300px] rotate-3 shadow-2xl">
+                                <RequestCard
+                                    request={activeRequest}
+                                    isDragging
+                                    technician={activeRequest.assignedTechnicianId ? technicianMap.get(activeRequest.assignedTechnicianId) : undefined}
+                                />
+                            </div>
                         ) : null}
                     </DragOverlay>
                 </DndContext>

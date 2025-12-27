@@ -329,6 +329,30 @@ export default function EquipmentPage() {
                                                             View Details
                                                         </Button>
                                                     </Link>
+                                                    {hasRole(['admin', 'manager']) && (
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="outline" size="sm" className="h-9 w-9 p-0">
+                                                                    <MoreVertical className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="bg-slate-800 border-slate-700">
+                                                                <Link href={`/equipment/${item.id}/edit`}>
+                                                                    <DropdownMenuItem className="cursor-pointer">
+                                                                        <Edit className="h-4 w-4 mr-2" />
+                                                                        Edit
+                                                                    </DropdownMenuItem>
+                                                                </Link>
+                                                                <DropdownMenuItem
+                                                                    className="cursor-pointer text-red-400"
+                                                                    onClick={() => handleDelete(item.id)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4 mr-2" />
+                                                                    Delete
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                         </Card>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowLeft, Loader2, Save, Trash2, Clock, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Trash2, Clock, User as UserIcon, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,13 +46,15 @@ const editSchema = requestSchema.extend({
     }),
 });
 
-export default function RequestDetailsPage({ params }: { params: { id: string } }) {
+import { use } from 'react';
+
+export default function RequestDetailsPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
-    const { id } = params;
     const { request, isLoading: isLoadingRequest } = useRequestById(id);
     const { updateRequest, deleteRequest } = useRequests();
     const { teams } = useTeams();
-    const { user } = useAuth(); // Assuming useAuth gives us current user info
+    const { user, hasRole } = useAuth();
 
     // We can't initialize form until we have the data
     const {
@@ -75,11 +77,11 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
                 priority: request.priority,
                 equipmentId: request.equipmentId,
                 teamId: request.teamId,
-                assignedTechnicianId: request.assignedTechnicianId,
+                assignedTechnicianId: request.assignedTechnicianId || 'unassigned',
                 status: request.status,
-                scheduledDate: request.scheduledDate,
+                scheduledDate: request.scheduledDate ? new Date(request.scheduledDate).toISOString().split('T')[0] : '',
                 duration: request.duration || 0,
-                notes: request.notes,
+                notes: request.notes || '',
             });
         }
     }, [request, reset]);
@@ -96,7 +98,13 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
                 return;
             }
 
-            await updateRequest(id, data as unknown as Partial<import('@/types').MaintenanceRequest>);
+            // Map 'unassigned' back to undefined for the API
+            const submissionData = {
+                ...data,
+                assignedTechnicianId: data.assignedTechnicianId === 'unassigned' ? null : data.assignedTechnicianId
+            };
+
+            await updateRequest(id, submissionData as any);
             toast.success('Request updated successfully');
             router.push('/requests');
         } catch (error) {
@@ -127,18 +135,30 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
 
     if (isLoadingRequest) {
         return (
-            <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            <div className="flex items-center justify-center h-[60vh]">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                    <p className="text-slate-400 text-sm">Loading request details...</p>
+                </div>
             </div>
         );
     }
 
     if (!request) {
         return (
-            <div className="flex flex-col items-center justify-center h-64 gap-4">
-                <p className="text-slate-400">Request not found</p>
+            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+                <div className="p-4 rounded-full bg-slate-800/50">
+                    <AlertTriangle className="h-8 w-8 text-amber-500" />
+                </div>
+                <div className="text-center">
+                    <p className="text-white font-medium">Request not found</p>
+                    <p className="text-slate-400 text-sm">The request you are looking for does not exist or has been deleted.</p>
+                </div>
                 <Link href="/requests">
-                    <Button variant="outline">Go Back</Button>
+                    <Button variant="outline" className="mt-2 border-slate-700 hover:bg-slate-800">
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back to Requests
+                    </Button>
                 </Link>
             </div>
         );
@@ -165,25 +185,28 @@ export default function RequestDetailsPage({ params }: { params: { id: string } 
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="icon">
-                                <Trash2 className="h-5 w-5" />
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-slate-900 border-slate-800 text-white">
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the maintenance request.
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel className="bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white">Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                    {hasRole(['admin', 'manager']) && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500 hover:text-white transition-all">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Request
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-slate-900 border-slate-800 text-white">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-slate-400">
+                                        This action cannot be undone. This will permanently delete the maintenance request <strong>{request.subject}</strong>.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel className="bg-slate-800 border-slate-700 hover:bg-slate-700 hover:text-white">Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Delete Permanently</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </div>
             </div>
 

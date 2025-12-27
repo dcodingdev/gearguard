@@ -45,7 +45,8 @@ export default function NewRequestPage() {
             status: 'new',
             scheduledDate: defaultDate,
             priority: 'medium',
-            type: 'corrective',
+            type: (searchParams.get('type') as any) || 'corrective',
+            equipmentId: searchParams.get('equipmentId') || '',
         },
     });
 
@@ -183,11 +184,27 @@ export default function NewRequestPage() {
                                     <SelectValue placeholder="Select equipment" />
                                 </SelectTrigger>
                                 <SelectContent className="bg-slate-800 border-slate-700">
-                                    {equipment.map((item) => (
-                                        <SelectItem key={item.id} value={item.id}>
-                                            {`${item.name} (${item.serialNumber})`}
-                                        </SelectItem>
-                                    ))}
+                                    {equipment
+                                        .filter(item => item.status !== 'scrapped')
+                                        .map((item) => (
+                                            <SelectItem key={item.id} value={item.id}>
+                                                {`${item.name} (${item.serialNumber})`}
+                                            </SelectItem>
+                                        ))}
+                                    {equipment.filter(item => item.status === 'scrapped').length > 0 && (
+                                        <>
+                                            <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                                Scrapped (Unsupported)
+                                            </div>
+                                            {equipment
+                                                .filter(item => item.status === 'scrapped')
+                                                .map((item) => (
+                                                    <SelectItem key={item.id} value={item.id} disabled>
+                                                        {`${item.name} (Scrapped)`}
+                                                    </SelectItem>
+                                                ))}
+                                        </>
+                                    )}
                                 </SelectContent>
                             </Select>
                             {errors.equipmentId && (

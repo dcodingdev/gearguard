@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromRequest, requireRole } from '@/lib/auth';
-import { getRequestById, updateRequest, deleteRequest, getEquipmentById, updateEquipment, addActivityLog } from '@/lib/db';
+import { getRequestById, updateRequest, deleteRequest, getEquipmentById, updateEquipment, addActivityLog, cancelOtherEquipmentRequests } from '@/lib/db';
 import { requestSchema } from '@/schemas/request.schema';
 
 export async function GET(
@@ -77,6 +77,10 @@ export async function PUT(
                         isScraped: true,
                         scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
                     });
+
+                    // Cancel other open requests for this equipment
+                    await cancelOtherEquipmentRequests(existingRequest.equipmentId, id);
+
                     await addActivityLog({
                         type: 'equipment',
                         action: 'status_change',
@@ -84,7 +88,7 @@ export async function PUT(
                         entityName: equipment.name,
                         userId: auth.userId,
                         userName: auth.name,
-                        details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}`,
+                        details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}. Other open requests cancelled.`,
                     });
                 }
             }
@@ -114,6 +118,10 @@ export async function PUT(
                     isScraped: true,
                     scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
                 });
+
+                // Cancel other open requests for this equipment
+                await cancelOtherEquipmentRequests(existingRequest.equipmentId, id);
+
                 await addActivityLog({
                     type: 'equipment',
                     action: 'status_change',
@@ -121,7 +129,7 @@ export async function PUT(
                     entityName: equipment.name,
                     userId: auth.userId,
                     userName: auth.name,
-                    details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}`,
+                    details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}. Other open requests cancelled.`,
                 });
             }
         }

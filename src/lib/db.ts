@@ -559,13 +559,16 @@ export async function deleteTeam(id: string): Promise<boolean> {
 }
 
 // Request operations
-export async function getRequests(filters?: { status?: string; type?: string; teamId?: string; equipmentId?: string }): Promise<MaintenanceRequest[]> {
+export async function getRequests(filters?: { status?: string; type?: string; teamId?: string; equipmentId?: string; search?: string }): Promise<MaintenanceRequest[]> {
     await dbConnect();
     const query: any = {};
     if (filters?.status) query.status = filters.status;
     if (filters?.type) query.type = filters.type;
     if (filters?.teamId) query.teamId = filters.teamId;
     if (filters?.equipmentId) query.equipmentId = filters.equipmentId;
+    if (filters?.search) {
+        query.subject = { $regex: filters.search, $options: 'i' };
+    }
 
     return mapDocument(await MaintenanceRequestModel.find(query).sort({ createdAt: -1 }).lean());
 }
@@ -595,6 +598,18 @@ export async function deleteRequest(id: string): Promise<boolean> {
     await dbConnect();
     const result = await MaintenanceRequestModel.findByIdAndDelete(id);
     return !!result;
+}
+
+export async function cancelOtherEquipmentRequests(equipmentId: string, currentRequestId: string): Promise<void> {
+    await dbConnect();
+    await MaintenanceRequestModel.updateMany(
+        {
+            equipmentId,
+            id: { $ne: currentRequestId },
+            status: { $in: ['new', 'in_progress'] }
+        },
+        { status: 'cancelled', notes: 'Automatically cancelled because equipment was scrapped.' }
+    );
 }
 
 // Activity log
