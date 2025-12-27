@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthFromRequest, requireRole } from '@/lib/auth';
-import { getRequestById, updateRequest, deleteRequest } from '@/lib/db';
+import { getRequestById, updateRequest, deleteRequest, getEquipmentById, updateEquipment, addActivityLog } from '@/lib/db';
 import { requestSchema } from '@/schemas/request.schema';
 
 export async function GET(
@@ -67,6 +67,28 @@ export async function PUT(
             }
 
             const updated = updateRequest(id, filteredData);
+
+            // Scrap Logic: If moved to scrap, mark equipment as scrapped
+            if (filteredData.status === 'scrap' && existingRequest.status !== 'scrap') {
+                const equipment = getEquipmentById(existingRequest.equipmentId);
+                if (equipment && equipment.status !== 'scrapped') {
+                    updateEquipment(existingRequest.equipmentId, {
+                        status: 'scrapped',
+                        isScraped: true,
+                        scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
+                    });
+                    addActivityLog({
+                        type: 'equipment',
+                        action: 'status_change',
+                        entityId: existingRequest.equipmentId,
+                        entityName: equipment.name,
+                        userId: auth.userId,
+                        userName: auth.name,
+                        details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}`,
+                    });
+                }
+            }
+
             return NextResponse.json(updated);
         }
 
@@ -82,6 +104,28 @@ export async function PUT(
         }
 
         const updated = updateRequest(id, result.data);
+
+        // Scrap Logic: If moved to scrap, mark equipment as scrapped
+        if (result.data.status === 'scrap' && existingRequest.status !== 'scrap') {
+            const equipment = getEquipmentById(existingRequest.equipmentId);
+            if (equipment && equipment.status !== 'scrapped') {
+                updateEquipment(existingRequest.equipmentId, {
+                    status: 'scrapped',
+                    isScraped: true,
+                    scrapReason: `Scrapped via maintenance request: ${existingRequest.subject}`,
+                });
+                addActivityLog({
+                    type: 'equipment',
+                    action: 'status_change',
+                    entityId: existingRequest.equipmentId,
+                    entityName: equipment.name,
+                    userId: auth.userId,
+                    userName: auth.name,
+                    details: `Equipment marked as scrapped due to maintenance request: ${existingRequest.subject}`,
+                });
+            }
+        }
+
         return NextResponse.json(updated);
     } catch (error) {
         console.error('Update request error:', error);

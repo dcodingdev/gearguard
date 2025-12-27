@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
     Plus,
@@ -42,9 +42,11 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEquipment } from '@/hooks/useEquipment';
+import { useEquipmentRequestCounts } from '@/hooks/useEquipmentRequests';
 import { useAuth } from '@/context/AuthContext';
 import { DEPARTMENTS, EQUIPMENT_STATUS } from '@/constants';
 import { Equipment } from '@/types';
+import { MaintenanceButton } from '@/components/ui/MaintenanceButton';
 
 const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -79,6 +81,12 @@ const getStatusBadge = (status: string) => {
                     Out of Service
                 </Badge>
             );
+        case 'scrapped':
+            return (
+                <Badge className="bg-gray-600/20 text-gray-400 border-gray-600/30 hover:bg-gray-600/30">
+                    Scrapped
+                </Badge>
+            );
         default:
             return <Badge variant="outline">{status}</Badge>;
     }
@@ -96,6 +104,10 @@ export default function EquipmentPage() {
         department: departmentFilter !== 'all' ? departmentFilter : undefined,
         status: statusFilter !== 'all' ? statusFilter : undefined,
     });
+
+    // Get request counts for all equipment
+    const equipmentIds = useMemo(() => equipment.map(e => e.id), [equipment]);
+    const { counts: requestCounts } = useEquipmentRequestCounts(equipmentIds);
 
     const groupedByDepartment = equipment.reduce((acc, item) => {
         const dept = item.department;
@@ -196,6 +208,7 @@ export default function EquipmentPage() {
                                             <TableHead className="text-slate-400">Department</TableHead>
                                             <TableHead className="text-slate-400">Location</TableHead>
                                             <TableHead className="text-slate-400">Status</TableHead>
+                                            <TableHead className="text-slate-400">Maintenance</TableHead>
                                             <TableHead className="text-slate-400 text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -217,6 +230,13 @@ export default function EquipmentPage() {
                                                 </TableCell>
                                                 <TableCell className="text-slate-400">{item.location}</TableCell>
                                                 <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                                <TableCell>
+                                                    <MaintenanceButton
+                                                        equipmentId={item.id}
+                                                        openRequestCount={requestCounts[item.id] || 0}
+                                                        variant="compact"
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="text-right">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -299,6 +319,11 @@ export default function EquipmentPage() {
                                                     )}
                                                 </div>
                                                 <div className="mt-4 flex gap-2">
+                                                    <MaintenanceButton
+                                                        equipmentId={item.id}
+                                                        openRequestCount={requestCounts[item.id] || 0}
+                                                        variant="compact"
+                                                    />
                                                     <Link href={`/equipment/${item.id}`} className="flex-1">
                                                         <Button variant="outline" size="sm" className="w-full">
                                                             View Details

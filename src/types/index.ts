@@ -60,6 +60,8 @@ export interface Equipment {
     warrantyExpiry?: string;
     location: string;
     status: EquipmentStatusValue;
+    isScraped?: boolean;
+    scrapReason?: string;
     notes?: string;
     createdAt: string;
     updatedAt: string;

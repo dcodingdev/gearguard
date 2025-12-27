@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
     DndContext,
     DragOverlay,
@@ -14,12 +15,13 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Plus, Calendar, LayoutGrid, List, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Calendar, LayoutGrid, List, Clock, AlertTriangle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRequests } from '@/hooks/useRequests';
+import { useEquipment } from '@/hooks/useEquipment';
 import { useAuth } from '@/context/AuthContext';
 import { MaintenanceRequest } from '@/types';
 import { REQUEST_STATUS, REQUEST_PRIORITY } from '@/constants';
@@ -28,6 +30,7 @@ const KANBAN_COLUMNS = [
     { id: 'open', label: 'Open', color: 'bg-blue-500' },
     { id: 'in_progress', label: 'In Progress', color: 'bg-amber-500' },
     { id: 'completed', label: 'Completed', color: 'bg-green-500' },
+    { id: 'scrap', label: 'Scrap', color: 'bg-gray-500' },
 ];
 
 interface RequestCardProps {
@@ -64,12 +67,12 @@ function RequestCard({ request, isDragging }: RequestCardProps) {
                         <Badge
                             variant="outline"
                             className={`shrink-0 text-[10px] ${request.priority === 'critical'
-                                    ? 'bg-red-500/20 text-red-400 border-red-500/30'
-                                    : request.priority === 'high'
-                                        ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
-                                        : request.priority === 'medium'
-                                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                                            : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+                                ? 'bg-red-500/20 text-red-400 border-red-500/30'
+                                : request.priority === 'high'
+                                    ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                                    : request.priority === 'medium'
+                                        ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                        : 'bg-slate-500/20 text-slate-400 border-slate-500/30'
                                 }`}
                         >
                             {priorityConfig?.label}
@@ -80,8 +83,8 @@ function RequestCard({ request, isDragging }: RequestCardProps) {
                         <div className="flex items-center gap-1">
                             <span
                                 className={`px-1.5 py-0.5 rounded text-[10px] ${request.type === 'corrective'
-                                        ? 'bg-red-500/20 text-red-400'
-                                        : 'bg-blue-500/20 text-blue-400'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-blue-500/20 text-blue-400'
                                     }`}
                             >
                                 {request.type === 'corrective' ? 'Corrective' : 'Preventive'}
@@ -148,10 +151,17 @@ function KanbanColumn({ status, requests }: KanbanColumnProps) {
 }
 
 export default function RequestsPage() {
+    const searchParams = useSearchParams();
+    const equipmentIdFilter = searchParams.get('equipmentId');
+
     const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
     const [activeId, setActiveId] = useState<string | null>(null);
-    const { requests, isLoading, updateStatus } = useRequests();
+    const { requests, isLoading, updateStatus } = useRequests({ equipmentId: equipmentIdFilter || undefined });
+    const { equipment } = useEquipment();
     const { hasRole } = useAuth();
+
+    // Get equipment name for the filter
+    const filteredEquipment = equipmentIdFilter ? equipment.find(e => e.id === equipmentIdFilter) : null;
 
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -241,6 +251,21 @@ export default function RequestsPage() {
                 </div>
             </div>
 
+            {/* Equipment Filter Banner */}
+            {filteredEquipment && (
+                <div className="flex items-center gap-3 px-4 py-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <span className="text-blue-400 text-sm">
+                        Showing requests for: <strong className="text-white">{filteredEquipment.name}</strong>
+                    </span>
+                    <Link href="/requests">
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-blue-400 hover:text-white hover:bg-blue-500/20">
+                            <X className="h-4 w-4 mr-1" />
+                            Clear Filter
+                        </Button>
+                    </Link>
+                </div>
+            )}
+
             {/* Kanban Board */}
             {viewMode === 'kanban' && (
                 <DndContext
@@ -249,7 +274,7 @@ export default function RequestsPage() {
                     onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
                 >
-                    <div className="grid grid-cols-3 gap-6">
+                    <div className="grid grid-cols-4 gap-6">
                         {KANBAN_COLUMNS.map((column) => (
                             <KanbanColumn
                                 key={column.id}

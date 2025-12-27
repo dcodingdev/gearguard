@@ -27,6 +27,7 @@ export const EQUIPMENT_STATUS = [
     { value: 'operational', label: 'Operational', color: 'bg-green-500' },
     { value: 'under_maintenance', label: 'Under Maintenance', color: 'bg-amber-500' },
     { value: 'out_of_service', label: 'Out of Service', color: 'bg-red-500' },
+    { value: 'scrapped', label: 'Scrapped', color: 'bg-gray-600' },
 ] as const;
 
 export type EquipmentStatusValue = typeof EQUIPMENT_STATUS[number]['value'];
@@ -55,6 +56,7 @@ export const REQUEST_STATUS = [
     { value: 'in_progress', label: 'In Progress', color: 'bg-amber-500' },
     { value: 'completed', label: 'Completed', color: 'bg-green-500' },
     { value: 'cancelled', label: 'Cancelled', color: 'bg-slate-500' },
+    { value: 'scrap', label: 'Scrap', color: 'bg-gray-500' },
 ] as const;
 
 export type RequestStatusValue = typeof REQUEST_STATUS[number]['value'];
